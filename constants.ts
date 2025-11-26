@@ -35,8 +35,8 @@ export const WEAPONS = {
     name: 'Blood Blade',
     damageMult: 1.0,
     speedMult: 1.0,
-    range: 65,
-    arc: Math.PI / 1.5,
+    range: 52, // Matched to visual sword length
+    arc: Math.PI / 2.2,
     heavyMult: 2.0,
     color: '#ef4444', // Red 500
     cooldown: 18,

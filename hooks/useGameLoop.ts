@@ -755,7 +755,8 @@ export const useGameLoop = (
         const isAttacking = entity.isAttacking;
         
         ctx.save();
-        ctx.translate(facing * 6, 4);
+        // Pivot point at center of character (chest height)
+        ctx.translate(facing * 4, -8);
         
         // Base Aim Rotation
         let baseRot = entity.aimAngle !== undefined ? entity.aimAngle : 0;
@@ -784,7 +785,7 @@ export const useGameLoop = (
         if (isAttacking && entity.currentWeapon !== WeaponType.SHADOW_BOW && progress > 0.1 && progress < 0.9) {
              ctx.save();
              // IMPORTANT: Use the exact same transform origin as the weapon to stay synced
-             // The weapon translation is (facing * 6, 4). We are already there because we are inside the `save` block.
+             // The weapon translation is (facing * 4, -8). We are already there because we are inside the `save` block.
              ctx.rotate(baseRot); // Rotate to aim direction
              
              const range = (weapon.range || 50); // Exact match to weapon length
@@ -799,12 +800,12 @@ export const useGameLoop = (
              // Draw Trail
              ctx.beginPath();
              // Outer Arc matches tip
-             ctx.arc(0, 0, range * 1.1, -arcSize/2, arcSize/2, false);
+             ctx.arc(0, 0, range, -arcSize/2, arcSize/2, false);
              // Inner Arc follows the blade edge
-             ctx.arc(0, 0, range * 0.75, arcSize/2, -arcSize/2, true); 
+             ctx.arc(0, 0, range * 0.5, arcSize/2, -arcSize/2, true); 
              ctx.closePath();
              
-             const gradient = ctx.createRadialGradient(0, 0, range * 0.6, 0, 0, range * 1.1);
+             const gradient = ctx.createRadialGradient(0, 0, range * 0.6, 0, 0, range);
              gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
              gradient.addColorStop(0.4, '#ffffff'); // Hot Core closer to inner edge
              gradient.addColorStop(0.6, weapon.color); // Weapon Color
@@ -815,7 +816,7 @@ export const useGameLoop = (
              
              // Draw a sharp "Core" line for definition
              ctx.beginPath();
-             ctx.arc(0, 0, range * 0.9, -arcSize/2 * 0.9, arcSize/2 * 0.9, false);
+             ctx.arc(0, 0, range * 0.8, -arcSize/2 * 0.9, arcSize/2 * 0.9, false);
              ctx.strokeStyle = 'rgba(255,255,255,0.6)';
              ctx.lineWidth = 1.5;
              ctx.stroke();
@@ -834,7 +835,7 @@ export const useGameLoop = (
 
         if (entity.currentWeapon === WeaponType.BLOOD_BLADE) {
             // Pixel Art Interpretation of the provided asset
-            const s = 2.5; // Scale factor to match hitbox range (~60px)
+            const s = 2.5; // Scale factor to match hitbox range (~50px)
 
             // Handle (Dark Brown)
             ctx.fillStyle = '#3f2e22'; 
@@ -1419,7 +1420,7 @@ function handleAttack(state: GameState, isHeavy: boolean) {
                 e.vy += Math.sin(angleToEnemy) * (isHeavy ? 15 : 5);
 
                 hitCount++;
-                state.camera.shake = isHeavy ? 10 : 3;
+                state.camera.shake = isHeavy ? 10 : 4;
                 state.hitStop = isHeavy ? C.HIT_STOP_HEAVY : C.HIT_STOP_LIGHT;
             }
         }
