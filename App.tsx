@@ -13,7 +13,8 @@ const App: React.FC = () => {
 
   const onLevelUp = useCallback(() => setShowLevelUp(true), []);
   
-  const { uiState, resumeGame, applyUpgrade, restartGame } = useGameLoop(canvasRef, onLevelUp);
+  // Removed unused 'resumeGame'
+  const { uiState, applyUpgrade, restartGame } = useGameLoop(canvasRef, onLevelUp);
 
   const handleStart = () => {
       setGameStarted(true);

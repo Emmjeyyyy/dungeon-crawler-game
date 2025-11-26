@@ -1,8 +1,8 @@
 
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants';
 
-const GameCanvas = forwardRef<HTMLCanvasElement>((props, ref) => {
+const GameCanvas = forwardRef<HTMLCanvasElement>((_, ref) => {
   return (
     <canvas
       ref={ref}
