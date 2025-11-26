@@ -449,8 +449,8 @@ export const useGameLoop = (
                 
                 const damage = player.stats.damage * dmgMult;
                 dealDamage(state, e, damage, true); // Auto-crit
-                createParticles(state, e.x, e.y, 5, '#ffffff');
-                state.camera.shake = 5;
+                createParticles(state, e.x, e.y, 8, '#ffffff'); // Increased particles
+                state.camera.shake = 6; // Increased shake
                 state.hitStop = 2;
                 // Knockback
                 e.vx += player.vx * 0.5;
@@ -755,8 +755,8 @@ export const useGameLoop = (
         const isAttacking = entity.isAttacking;
         
         ctx.save();
-        // Pivot point at center of character (chest height)
-        ctx.translate(facing * 4, -8);
+        // Pivot point adjusted downward to waist level for better visual holding position
+        ctx.translate(facing * 4, -4);
         
         // Base Aim Rotation
         let baseRot = entity.aimAngle !== undefined ? entity.aimAngle : 0;
@@ -782,10 +782,10 @@ export const useGameLoop = (
         }
 
         // SWOOSH EFFECT - SYNCED
-        if (isAttacking && entity.currentWeapon !== WeaponType.SHADOW_BOW && progress > 0.1 && progress < 0.9) {
+        if (isAttacking && entity.currentWeapon !== WeaponType.SHADOW_BOW && progress > 0.05 && progress < 0.95) {
              ctx.save();
              // IMPORTANT: Use the exact same transform origin as the weapon to stay synced
-             // The weapon translation is (facing * 4, -8). We are already there because we are inside the `save` block.
+             // The weapon translation is (facing * 4, -4). We are already there because we are inside the `save` block.
              ctx.rotate(baseRot); // Rotate to aim direction
              
              const range = (weapon.range || 50); // Exact match to weapon length
@@ -795,7 +795,9 @@ export const useGameLoop = (
              const intensity = Math.sin(progress * Math.PI);
              
              ctx.globalCompositeOperation = 'lighter'; // GLOW
-             ctx.globalAlpha = intensity * 0.8;
+             ctx.globalAlpha = Math.min(1, intensity * 1.5); // Boost alpha for visibility
+             ctx.shadowBlur = 15; // Glowing edge
+             ctx.shadowColor = weapon.color;
 
              // Draw Trail
              ctx.beginPath();
@@ -805,10 +807,10 @@ export const useGameLoop = (
              ctx.arc(0, 0, range * 0.5, arcSize/2, -arcSize/2, true); 
              ctx.closePath();
              
-             const gradient = ctx.createRadialGradient(0, 0, range * 0.6, 0, 0, range);
+             const gradient = ctx.createRadialGradient(0, 0, range * 0.4, 0, 0, range);
              gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
-             gradient.addColorStop(0.4, '#ffffff'); // Hot Core closer to inner edge
-             gradient.addColorStop(0.6, weapon.color); // Weapon Color
+             gradient.addColorStop(0.5, '#ffffff'); // Hot Core closer to middle
+             gradient.addColorStop(0.7, weapon.color); // Weapon Color
              gradient.addColorStop(1, `rgba(255, 255, 255, 0)`); // Fade edge
              
              ctx.fillStyle = gradient;
@@ -817,8 +819,8 @@ export const useGameLoop = (
              // Draw a sharp "Core" line for definition
              ctx.beginPath();
              ctx.arc(0, 0, range * 0.8, -arcSize/2 * 0.9, arcSize/2 * 0.9, false);
-             ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-             ctx.lineWidth = 1.5;
+             ctx.strokeStyle = '#ffffff';
+             ctx.lineWidth = 2;
              ctx.stroke();
 
              ctx.restore();
@@ -829,6 +831,17 @@ export const useGameLoop = (
 
         if (Math.abs(baseRot) > Math.PI / 2) {
              ctx.scale(1, -1);
+        }
+
+        // Smear/Blur Effect for Sprite
+        if (isAttacking && progress > 0.2 && progress < 0.8) {
+            ctx.save();
+            ctx.rotate(swingOffset * -0.2); // Lag behind slightly
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = weapon.color;
+            const weaponLen = (weapon.range || 50) - 5;
+            ctx.fillRect(0, -2, weaponLen, 4); // Simple smear shape
+            ctx.restore();
         }
 
         const weaponLen = (weapon.range || 50) - 5; 
@@ -1073,8 +1086,11 @@ export const useGameLoop = (
              const angle = Math.atan2(proj.vy, proj.vx);
              ctx.rotate(angle);
              
-             // Trail
+             // Trail Glow
              ctx.globalCompositeOperation = 'lighter';
+             ctx.shadowBlur = 20;
+             ctx.shadowColor = '#ef4444';
+             
              ctx.fillStyle = `rgba(239, 68, 68, 0.4)`;
              ctx.beginPath();
              ctx.arc(-10, 0, 20, -Math.PI/2, Math.PI/2);
@@ -1094,15 +1110,15 @@ export const useGameLoop = (
              
              // Highlight
              ctx.fillStyle = '#fff';
-             ctx.globalAlpha = 0.8;
+             ctx.globalAlpha = 0.9;
              ctx.beginPath();
              ctx.arc(2, 0, 12, -Math.PI/2.5, Math.PI/2.5, false);
              ctx.quadraticCurveTo(0, 0, 2, 12);
              ctx.fill();
              
              // Dripping Particles
-             if (Math.random() > 0.5) {
-                 createParticles(state, proj.x, proj.y, 1, '#7f1d1d');
+             if (Math.random() > 0.3) {
+                 createParticles(state, proj.x, proj.y, 1, '#991b1b');
              }
 
         } else {
@@ -1418,9 +1434,27 @@ function handleAttack(state: GameState, isHeavy: boolean) {
                 
                 e.vx += Math.cos(angleToEnemy) * (isHeavy ? 15 : 5);
                 e.vy += Math.sin(angleToEnemy) * (isHeavy ? 15 : 5);
+                
+                // Directional Blood Spray
+                for(let i=0; i<3; i++) {
+                    state.particles.push({
+                        id: Math.random().toString(),
+                        type: EntityType.PARTICLE,
+                        x: e.x, y: e.y,
+                        width: 3, height: 3,
+                        vx: Math.cos(angleToEnemy) * (4 + Math.random()*6) + (Math.random()-0.5)*2,
+                        vy: Math.sin(angleToEnemy) * (4 + Math.random()*6) + (Math.random()-0.5)*2,
+                        color: '#b91c1c', // Blood Red
+                        isDead: false,
+                        lifeTime: 15 + Math.random() * 10,
+                        maxLifeTime: 25,
+                        startColor: '#ef4444',
+                        endColor: '#7f1d1d'
+                    });
+                }
 
                 hitCount++;
-                state.camera.shake = isHeavy ? 10 : 4;
+                state.camera.shake = isHeavy ? 12 : 6;
                 state.hitStop = isHeavy ? C.HIT_STOP_HEAVY : C.HIT_STOP_LIGHT;
             }
         }
@@ -1825,8 +1859,26 @@ function updateProjectiles(state: GameState) {
             for (const e of state.enemies) {
                 if (rectIntersect(p, e)) {
                     dealDamage(state, e, p.damage, false);
-                    createParticles(state, p.x, p.y, 3, p.color);
                     
+                    // Spray direction based on hit
+                    const sprayAngle = Math.atan2(p.vy, p.vx);
+                    for(let i=0; i<3; i++) {
+                        state.particles.push({
+                            id: Math.random().toString(),
+                            type: EntityType.PARTICLE,
+                            x: e.x, y: e.y,
+                            width: 3, height: 3,
+                            vx: Math.cos(sprayAngle) * 5 + (Math.random()-0.5)*3,
+                            vy: Math.sin(sprayAngle) * 5 + (Math.random()-0.5)*3,
+                            color: '#b91c1c', 
+                            isDead: false,
+                            lifeTime: 15,
+                            maxLifeTime: 20,
+                            startColor: '#ef4444',
+                            endColor: '#7f1d1d'
+                        });
+                    }
+
                     if (!p.piercing) {
                         p.lifeTime = 0;
                         break;
