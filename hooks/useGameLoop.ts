@@ -485,7 +485,14 @@ export const useGameLoop = (
       player.vy *= C.FRICTION;
 
       // Attack Controls
-      if (player.attackCooldown > 0) player.attackCooldown--;
+      // Ensure state remains true while cooldown is active for animation visibility
+      if (player.attackCooldown > 0) {
+        player.attackCooldown--;
+        player.isAttacking = true;
+      } else {
+        player.isAttacking = false;
+      }
+      
       if (player.heavyAttackCooldown > 0) player.heavyAttackCooldown--;
 
       const isLight = inputs.has('MouseLeft');
@@ -498,8 +505,6 @@ export const useGameLoop = (
           }
       } else if (isLight && player.attackCooldown <= 0) {
           handleAttack(state, false);
-      } else {
-        player.isAttacking = false;
       }
 
       // Dash
@@ -772,7 +777,7 @@ export const useGameLoop = (
              // The weapon translation is (facing * 6, 4). We are already there because we are inside the `save` block.
              ctx.rotate(baseRot); // Rotate to aim direction
              
-             const range = (weapon.range || 50) * 1.3;
+             const range = (weapon.range || 50); // Exact match to weapon length
              const arcSize = weapon.arc || Math.PI;
              
              // Dynamic Alpha based on speed (center of swing is fastest)
@@ -783,15 +788,16 @@ export const useGameLoop = (
 
              // Draw Trail
              ctx.beginPath();
-             // Outer Arc
+             // Outer Arc matches tip
              ctx.arc(0, 0, range, -arcSize/2, arcSize/2, false);
-             // Inner Arc (make it crescent)
-             ctx.arc(0, 0, range * 0.3, arcSize/2, -arcSize/2, true);
+             // Inner Arc follows the blade edge
+             ctx.arc(0, 0, range * 0.6, arcSize/2, -arcSize/2, true); 
              ctx.closePath();
              
-             const gradient = ctx.createRadialGradient(0, 0, range * 0.3, 0, 0, range);
+             const gradient = ctx.createRadialGradient(0, 0, range * 0.6, 0, 0, range);
              gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
-             gradient.addColorStop(0.5, weapon.color); // Use weapon color for glow
+             gradient.addColorStop(0.2, '#ffffff'); // Hot Core closer to inner edge
+             gradient.addColorStop(0.6, weapon.color); // Weapon Color
              gradient.addColorStop(1, `rgba(255, 255, 255, 0)`); // Fade edge
              
              ctx.fillStyle = gradient;
@@ -799,9 +805,9 @@ export const useGameLoop = (
              
              // Draw a sharp "Core" line for definition
              ctx.beginPath();
-             ctx.arc(0, 0, range * 0.9, -arcSize/2 * 0.8, arcSize/2 * 0.8, false);
-             ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-             ctx.lineWidth = 2;
+             ctx.arc(0, 0, range * 0.8, -arcSize/2 * 0.9, arcSize/2 * 0.9, false);
+             ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+             ctx.lineWidth = 1.5;
              ctx.stroke();
 
              ctx.restore();
@@ -816,34 +822,39 @@ export const useGameLoop = (
 
         ctx.fillStyle = weapon.color;
         
-        // Draw Specific Weapons
+        // Draw Specific Weapons with Dynamic Length
+        // Subtract slight offset for handle overlap
+        const weaponLen = (weapon.range || 50) - 5; 
+
         if (entity.currentWeapon === WeaponType.BLOOD_BLADE) {
-            ctx.fillRect(0, -2, 20, 4);
+            ctx.fillRect(0, -2, weaponLen, 4);
             ctx.fillStyle = '#64748b';
             ctx.fillRect(-4, -1, 4, 2);
-            ctx.fillRect(0, -4, 2, 8); // Guard
+            ctx.fillRect(0, -6, 2, 12); // Guard
         } else if (entity.currentWeapon === WeaponType.DUAL_FANGS) {
-            ctx.fillRect(0, -1, 12, 3);
+            const daggerLen = weaponLen * 0.7; // Daggers are shorter than range usually imply
+            ctx.fillRect(0, -2, daggerLen, 4);
             ctx.fillStyle = '#64748b';
             ctx.fillRect(-2, 0, 4, 2);
         } else if (entity.currentWeapon === WeaponType.REAPER_AXE) {
             ctx.fillStyle = '#5c3a2e';
-            ctx.fillRect(0, -2, 24, 4);
+            ctx.fillRect(0, -2, weaponLen, 4); // Handle
             ctx.fillStyle = weapon.color;
             ctx.beginPath();
-            ctx.moveTo(18, -2);
-            ctx.lineTo(24, -8);
-            ctx.lineTo(24, 8);
-            ctx.lineTo(18, 2);
+            // Axe Head at the end
+            ctx.moveTo(weaponLen - 20, -4);
+            ctx.lineTo(weaponLen + 5, -16);
+            ctx.lineTo(weaponLen + 5, 16);
+            ctx.lineTo(weaponLen - 20, 4);
             ctx.fill();
         } else if (entity.currentWeapon === WeaponType.SHADOW_BOW) {
             ctx.strokeStyle = '#94a3b8';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(6, 0, 10, -Math.PI/2, Math.PI/2);
+            ctx.arc(6, 0, 16, -Math.PI/2, Math.PI/2);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(6, -10); ctx.lineTo(6, 10);
+            ctx.moveTo(6, -16); ctx.lineTo(6, 16);
             ctx.stroke();
         }
         
@@ -1081,7 +1092,7 @@ export const useGameLoop = (
       setUiState(prev => ({...prev, isGameOver: false}));
   };
 
-  return { uiState, resumeGame, applyUpgrade, restartGame };
+  return { uiState, applyUpgrade, restartGame };
 };
 
 
