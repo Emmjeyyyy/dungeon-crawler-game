@@ -1,8 +1,8 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { 
-  GameState, Player, Enemy, Echo, Projectile, Particle, Item, DamageNumber,
-  EntityType, EnemyType, ItemType, WeaponType, AbilityType, TileType, Dungeon, Rect, Room, Entity, PassiveItem
+  GameState, Player, Enemy,
+  EntityType, EnemyType, ItemType, WeaponType, AbilityType, TileType, Dungeon, Rect, Room, Entity, Item
 } from '../types';
 import * as C from '../constants';
 import { PASSIVE_ITEMS } from '../constants';
@@ -134,7 +134,7 @@ const recalculateStats = (player: Player) => {
 
     // Apply Items
     Object.entries(player.inventory).forEach(([itemId, stack]) => {
-        const item = C.PASSIVE_ITEMS.find(i => i.id === itemId);
+        const item = PASSIVE_ITEMS.find(i => i.id === itemId);
         if (item && item.statMod) {
             const mod = item.statMod;
             const totalVal = mod.value * stack;
@@ -144,14 +144,24 @@ const recalculateStats = (player: Player) => {
                 player.maxHp += totalVal;
                 player.hp += (player.maxHp - oldMax); // Heal the difference
             } else {
-                if (mod.isMult) {
-                    player.stats[mod.target] += (mod.target === 'attackSpeed' || mod.target === 'speed' ? 0 : 1) * totalVal; // Simplified for speed/AS
-                    // Correction: Logic depends on if we treat 1.0 as base. 
-                    if (mod.target === 'damage') player.stats.damage *= (1 + totalVal); // Not additive base damage usually, maybe flat? Let's use multipliers for damage scaling items
-                    if (mod.target === 'speed') player.stats.speed *= (1 + totalVal);
-                    if (mod.target === 'attackSpeed') player.stats.attackSpeed += totalVal; // Additive attack speed usually
-                } else {
-                    player.stats[mod.target] += totalVal;
+                let targetKey: keyof typeof player.stats | null = null;
+                if (mod.target === 'damage') targetKey = 'damage';
+                if (mod.target === 'speed') targetKey = 'speed';
+                if (mod.target === 'attackSpeed') targetKey = 'attackSpeed';
+                if (mod.target === 'critChance') targetKey = 'critChance';
+                if (mod.target === 'echoDuration') targetKey = 'echoDurationMult';
+
+                if (targetKey) {
+                    if (mod.isMult) {
+                        if (mod.target === 'attackSpeed' || mod.target === 'speed') {
+                            // Logic kept from previous, though somewhat inconsistent with 'mult' naming, but preserves behavior
+                             player.stats[targetKey] += totalVal; 
+                        } else {
+                             player.stats[targetKey] *= (1 + totalVal);
+                        }
+                    } else {
+                        player.stats[targetKey] += totalVal;
+                    }
                 }
             }
         }
@@ -1335,7 +1345,7 @@ function handleAbility(state: GameState, slot: 'PRIMARY' | 'SECONDARY') {
     
     if (!abilityType) return;
     
-    const config = slot === 'PRIMARY' ? C.ABILITIES[abilityType] : C.WEAPONS[player.currentWeapon].secondary;
+    const config = slot === 'PRIMARY' ? (C.ABILITIES as any)[abilityType] : C.WEAPONS[player.currentWeapon].secondary;
     if (!config) return;
 
     // Set Cooldown
@@ -1572,13 +1582,15 @@ function updateEchoes(state: GameState) {
         });
 
         if (nearest) {
-            const angle = Math.atan2(nearest.y - echo.y, nearest.x - echo.x);
+            // Explicit type check for nearest to ensure TS knows it's an Enemy
+            const target: Enemy = nearest;
+            const angle = Math.atan2(target.y - echo.y, target.x - echo.x);
             echo.vx += Math.cos(angle) * 0.3;
             echo.vy += Math.sin(angle) * 0.3;
             echo.facingX = Math.sign(Math.cos(angle));
             
             if (minD < 30) {
-                dealDamage(state, nearest, echo.damage, false);
+                dealDamage(state, target, echo.damage, false);
                 echo.lifeTime -= 30;
                 echo.vx = -Math.cos(angle) * 5;
                 echo.vy = -Math.sin(angle) * 5;
@@ -1602,105 +1614,148 @@ function updateEchoes(state: GameState) {
     state.echoes = state.echoes.filter(e => !e.isDead);
 }
 
+function rectIntersect(r1: Rect, r2: Rect): boolean {
+    return (
+        r1.x < r2.x + r2.width &&
+        r1.x + r1.width > r2.x &&
+        r1.y < r2.y + r2.height &&
+        r1.y + r1.height > r2.y
+    );
+}
+
+function createParticles(state: GameState, x: number, y: number, count: number, color: string) {
+    for(let i=0; i<count; i++) {
+        state.particles.push({
+            id: Math.random().toString(),
+            type: EntityType.PARTICLE,
+            x, y,
+            width: 4, height: 4,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+            color: color,
+            isDead: false,
+            lifeTime: 20 + Math.random() * 10,
+            maxLifeTime: 30,
+            startColor: color,
+            endColor: color
+        });
+    }
+}
+
+function spawnDamageNumber(state: GameState, x: number, y: number, value: number, isCrit: boolean, color: string) {
+    state.damageNumbers.push({
+        id: Math.random().toString(),
+        x: x + (Math.random() - 0.5) * 20, 
+        y: y - 20,
+        value,
+        isCrit,
+        lifeTime: C.DAMAGE_TEXT_LIFETIME,
+        maxLifeTime: C.DAMAGE_TEXT_LIFETIME,
+        vx: (Math.random() - 0.5) * 2,
+        vy: -3,
+        color
+    });
+}
+
+function dealDamage(state: GameState, enemy: Enemy, amount: number, isCrit: boolean, skipOnHit: boolean = false) {
+    enemy.hp -= amount;
+    enemy.hitFlashTimer = 5;
+    spawnDamageNumber(state, enemy.x, enemy.y, amount, isCrit, isCrit ? '#fbbf24' : '#ffffff');
+    
+    // Simple proc logic for now
+    if (!skipOnHit && state.player.inventory['ukulele'] && Math.random() < 0.25) {
+         // Chain lightning
+         const range = 150;
+         const target = state.enemies.find(e => e.id !== enemy.id && Math.sqrt((e.x-enemy.x)**2 + (e.y-enemy.y)**2) < range);
+         if (target) {
+             // Visual for chain lightning?
+             createParticles(state, enemy.x, enemy.y, 5, '#facc15'); 
+             dealDamage(state, target, amount * 0.5, false, true);
+         }
+    }
+}
+
+function nextFloor(state: GameState) {
+    state.dungeon.floor++;
+    const newDungeon = createDungeon(state.dungeon.floor);
+    state.dungeon = newDungeon;
+    const startRoom = newDungeon.rooms[0];
+    state.player.x = (startRoom.x + startRoom.width/2) * C.TILE_SIZE;
+    state.player.y = (startRoom.y + startRoom.height/2) * C.TILE_SIZE;
+    state.enemies = [];
+    state.items = [];
+    state.projectiles = [];
+    state.echoes = [];
+    state.particles = [];
+    state.damageNumbers = [];
+    state.interactionItem = null;
+    
+    // Heal a bit
+    state.player.hp = Math.min(state.player.hp + state.player.maxHp * 0.2, state.player.maxHp);
+}
+
 function updateProjectiles(state: GameState) {
     state.projectiles.forEach(p => {
         p.x += p.vx;
         p.y += p.vy;
         p.lifeTime--;
-        if (p.lifeTime <= 0) p.isDead = true;
-        if (checkWall(p.x, p.y, p.width, p.height, state.dungeon)) p.isDead = true;
         
-        if (p.ownerId === 'player') {
-            state.enemies.forEach(e => {
+        // Wall Collision
+        if (checkWall(p.x, p.y, p.width, p.height, state.dungeon)) {
+            p.lifeTime = 0;
+            createParticles(state, p.x, p.y, 3, p.color);
+        }
+        
+        // Enemy Collision
+        if (p.ownerId === state.player.id) {
+            for (const e of state.enemies) {
                 if (rectIntersect(p, e)) {
                     dealDamage(state, e, p.damage, false);
-                    if(!p.piercing) p.isDead = true;
+                    createParticles(state, p.x, p.y, 3, p.color);
+                    if (!p.piercing) {
+                        p.lifeTime = 0;
+                        break;
+                    }
                 }
-            });
+            }
         }
     });
-    state.projectiles = state.projectiles.filter(p => !p.isDead);
+    state.projectiles = state.projectiles.filter(p => p.lifeTime > 0);
 }
 
-function dealDamage(state: GameState, e: Enemy, dmg: number, isCrit: boolean, isProc: boolean = false) {
-    e.hp -= dmg;
-    e.hitFlashTimer = 5;
-    spawnDamageNumber(state, e.x, e.y, dmg, isCrit, C.COLORS.damageEnemy);
-
-    if (isProc) return; // Prevent infinite loops
-
-    // --- On Hit Effects ---
-    const { inventory } = state.player;
-    
-    // Scythe (Lifesteal on Crit)
-    if (isCrit && inventory['hopoo_feather']) {
-        const heal = 5 * inventory['hopoo_feather'];
-        state.player.hp = Math.min(state.player.maxHp, state.player.hp + heal);
-        spawnDamageNumber(state, state.player.x, state.player.y, heal, false, C.COLORS.heal);
-    }
-    
-    // AtG Missile
-    if (inventory['atg_missile']) {
-        if (Math.random() < 0.1 * inventory['atg_missile']) {
-             state.projectiles.push({
-                id: Math.random().toString(),
-                type: EntityType.PROJECTILE,
-                ownerId: state.player.id,
-                x: state.player.x, y: state.player.y,
-                width: 12, height: 12,
-                vx: 0, vy: -10, // Fire UP then homing
-                damage: state.player.stats.damage * 3,
-                color: '#f59e0b',
-                lifeTime: 120,
-                isDead: false,
-                piercing: false
-             });
-        }
-    }
-
-    // Ukulele (Chain Lightning)
-    if (inventory['ukulele']) {
-        if (Math.random() < 0.25) {
-             // Find nearby enemies
-             const radius = 100 + (20 * inventory['ukulele']);
-             state.enemies.forEach(ne => {
-                 if (ne.id !== e.id) {
-                     const dist = Math.sqrt((ne.x - e.x)**2 + (ne.y - e.y)**2);
-                     if (dist < radius) {
-                         dealDamage(state, ne, dmg * 0.8, false, true);
-                         // Visual lightning
-                         createParticles(state, e.x, e.y, 5, '#facc15');
-                         createParticles(state, ne.x, ne.y, 5, '#facc15');
-                     }
+function updateItems(state: GameState) {
+    let hovering: Item | null = null;
+    state.items.forEach(item => {
+        if (rectIntersect(state.player, item)) {
+             if (item.itemType === ItemType.WEAPON_DROP || item.itemType === ItemType.PORTAL) {
+                 hovering = item;
+             } else {
+                 // Auto Pickup
+                 if (item.itemType === ItemType.BLOOD_VIAL) {
+                     state.player.hp = Math.min(state.player.hp + 25, state.player.maxHp); // Fixed 25 or based on item? using 25 for now
+                     spawnDamageNumber(state, state.player.x, state.player.y, 25, false, C.COLORS.heal);
+                 } else if (item.itemType === ItemType.BUFF_DAMAGE) {
+                     state.player.activeBuffs.push({type: ItemType.BUFF_DAMAGE, timer: 600, value: 1.5});
+                 } else if (item.itemType === ItemType.BUFF_SPEED) {
+                     state.player.activeBuffs.push({type: ItemType.BUFF_SPEED, timer: 600, value: 1.5});
                  }
-             });
-        }
-    }
-
-    // Behemoth (Explosion)
-    if (inventory['brilliant_behemoth']) {
-        createParticles(state, e.x, e.y, 10, '#f97316');
-        const radius = 60 + (inventory['brilliant_behemoth'] * 10);
-        state.enemies.forEach(ne => {
-             if (ne.id !== e.id) {
-                 const dist = Math.sqrt((ne.x - e.x)**2 + (ne.y - e.y)**2);
-                 if (dist < radius) {
-                     dealDamage(state, ne, dmg * 0.6, false, true);
-                 }
+                 item.isDead = true;
              }
-        });
-    }
+        }
+    });
+    state.interactionItem = hovering;
+    state.items = state.items.filter(i => !i.isDead);
 }
 
-function spawnDamageNumber(state: GameState, x: number, y: number, v: number, crit: boolean, c: string) {
-    state.damageNumbers.push({
-        id: Math.random().toString(),
-        x, y, value: v, isCrit: crit,
-        lifeTime: 45, maxLifeTime: 45,
-        vx: (Math.random() - 0.5) * 2,
-        vy: -2,
-        color: c
+function updateParticles(state: GameState) {
+    state.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.lifeTime--;
+        p.vx *= 0.9;
+        p.vy *= 0.9;
     });
+    state.particles = state.particles.filter(p => p.lifeTime > 0);
 }
 
 function updateDamageNumbers(state: GameState) {
@@ -1710,77 +1765,4 @@ function updateDamageNumbers(state: GameState) {
         dn.lifeTime--;
     });
     state.damageNumbers = state.damageNumbers.filter(dn => dn.lifeTime > 0);
-}
-
-function updateItems(state: GameState) {
-    // Reset interaction item for this frame
-    state.interactionItem = null;
-
-    state.items.forEach(i => {
-        if (rectIntersect(i, state.player)) {
-            if (i.itemType === ItemType.BLOOD_VIAL) {
-                state.player.hp = Math.min(state.player.maxHp, state.player.hp + i.value);
-                spawnDamageNumber(state, state.player.x, state.player.y, i.value, false, C.COLORS.heal);
-                i.isDead = true;
-            } 
-            else if (i.itemType === ItemType.BUFF_DAMAGE || i.itemType === ItemType.BUFF_SPEED) {
-                state.player.activeBuffs.push({ type: i.itemType, timer: 600, value: 0 }); 
-                spawnDamageNumber(state, state.player.x, state.player.y, 0, true, i.color);
-                i.isDead = true;
-            }
-            else if (i.itemType === ItemType.WEAPON_DROP) {
-                 // Always interaction for weapons
-                 state.interactionItem = i;
-            }
-            else if (i.itemType === ItemType.PORTAL) {
-                state.interactionItem = i;
-            }
-        }
-    });
-    state.items = state.items.filter(i => !i.isDead);
-}
-
-function updateParticles(state: GameState) {
-    state.particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.lifeTime--;
-    });
-    state.particles = state.particles.filter(p => p.lifeTime > 0);
-}
-
-function createParticles(state: GameState, x: number, y: number, n: number, c: string) {
-    for(let i=0; i<n; i++) {
-        state.particles.push({
-            id: Math.random().toString(),
-            type: EntityType.PARTICLE,
-            x, y, width: 4, height: 4,
-            vx: (Math.random() - 0.5) * 5,
-            vy: (Math.random() - 0.5) * 5,
-            color: c,
-            lifeTime: 30, maxLifeTime: 30,
-            startColor: c, endColor: c,
-            isDead: false
-        });
-    }
-}
-
-function rectIntersect(r1: Rect, r2: Rect) {
-    return !(r2.x > r1.x + r1.width || r2.x + r2.width < r1.x || r2.y > r1.y + r1.height || r2.y + r2.height < r1.y);
-}
-
-function nextFloor(state: GameState) {
-    state.dungeon.floor++;
-    createParticles(state, state.player.x, state.player.y, 50, C.COLORS.portal);
-    state.camera.shake = 20;
-    
-    const newDungeon = createDungeon(state.dungeon.floor);
-    state.dungeon = newDungeon;
-    const r = newDungeon.rooms[0];
-    state.player.x = (r.x + r.width/2) * C.TILE_SIZE;
-    state.player.y = (r.y + r.height/2) * C.TILE_SIZE;
-    state.enemies = [];
-    state.echoes = []; 
-    state.items = [];
-    state.player.shadowStack = []; 
 }

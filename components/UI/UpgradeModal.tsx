@@ -2,7 +2,6 @@
 import React, { useMemo } from 'react';
 import { PASSIVE_ITEMS } from '../../constants';
 import { ItemRarity, PassiveItem } from '../../types';
-import { Package, Sword, Sparkles, Skull, Heart, Zap, Crosshair } from 'lucide-react';
 
 interface UpgradeModalProps {
   onSelect: (itemName: string) => void;

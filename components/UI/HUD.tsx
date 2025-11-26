@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Heart, Zap, Award, Ghost, Sword, Map, Flame, Wind, MousePointer2, RefreshCw, Crosshair, Hexagon, DoorOpen } from 'lucide-react';
+import { Heart, Ghost, Sword, Map, Wind, MousePointer2, RefreshCw, DoorOpen, Zap } from 'lucide-react';
 import { AbilityType, ItemType, Item, WeaponType, Inventory } from '../../types';
-import { ABILITIES, COLORS, WEAPONS, PASSIVE_ITEMS } from '../../constants';
+import { WEAPONS, PASSIVE_ITEMS } from '../../constants';
 
 interface HUDProps {
   hp: number;
@@ -13,7 +13,6 @@ interface HUDProps {
   floor: number;
   echoCount: number;
   activeAbility: AbilityType;
-  activeAbilityCooldown: number;
   secondaryAbility: AbilityType | null;
   secondaryAbilityCooldown: number;
   combo: number;
@@ -26,7 +25,7 @@ interface HUDProps {
 
 const HUD: React.FC<HUDProps> = ({ 
   hp, maxHp, xp, maxXp, level, floor, echoCount,
-  activeAbility, activeAbilityCooldown, secondaryAbilityCooldown, combo, activeBuffs, shadowStackCount = 0,
+  secondaryAbilityCooldown, combo, activeBuffs, shadowStackCount = 0,
   interactionItem, inventory, currentWeapon
 }) => {
   const hpPercent = (hp / maxHp) * 100;
