@@ -154,7 +154,6 @@ const recalculateStats = (player: Player) => {
                 if (targetKey) {
                     if (mod.isMult) {
                         if (mod.target === 'attackSpeed' || mod.target === 'speed') {
-                            // Logic kept from previous, though somewhat inconsistent with 'mult' naming, but preserves behavior
                              player.stats[targetKey] += totalVal; 
                         } else {
                              player.stats[targetKey] *= (1 + totalVal);
@@ -216,7 +215,6 @@ const createInitialState = (): GameState => {
       currentWeapon: WeaponType.BLOOD_BLADE,
       inventory: {},
       activeAbility: AbilityType.SHADOW_CALL, // Primary (Q)
-      secondaryAbility: null, // Removed property, but keep init for TS safety if needed (removed from interface though)
       stats: {
         damage: C.PLAYER_BASE_DAMAGE,
         speed: C.PLAYER_SPEED,
@@ -266,6 +264,7 @@ export const useGameLoop = (
     floor: 1,
     echoCount: 0,
     isGameOver: false,
+    isPaused: false,
     activeAbility: AbilityType.SHADOW_CALL,
     activeAbilityCooldown: 0,
     secondaryAbility: null as AbilityType | null,
@@ -280,7 +279,17 @@ export const useGameLoop = (
 
   // --- Input ---
   useEffect(() => {
-    const onKD = (e: KeyboardEvent) => inputRef.current.add(e.code);
+    const onKD = (e: KeyboardEvent) => {
+        inputRef.current.add(e.code);
+        // Toggle Pause
+        if (e.code === 'Escape') {
+            const state = gameState.current;
+            if (!state.isGameOver && !state.pendingLevelUp) {
+                state.isPaused = !state.isPaused;
+                setUiState(prev => ({...prev, isPaused: state.isPaused}));
+            }
+        }
+    };
     const onKU = (e: KeyboardEvent) => inputRef.current.delete(e.code);
     const onMM = (e: MouseEvent) => {
       if (canvasRef.current) {
@@ -564,6 +573,7 @@ export const useGameLoop = (
         floor: dungeon.floor,
         echoCount: state.echoes.length,
         isGameOver: state.isGameOver,
+        isPaused: state.isPaused,
         activeAbility: player.activeAbility,
         activeAbilityCooldown: player.abilityCooldown,
         secondaryAbility: null, // UI handles this via weapon
@@ -1073,26 +1083,25 @@ export const useGameLoop = (
     return () => cancelAnimationFrame(requestRef.current);
   }, [tick]);
 
-  // --- External Actions ---
-  const resumeGame = () => {
-    gameState.current.pendingLevelUp = false;
-    gameState.current.isPaused = false;
-  };
-  
   const applyUpgrade = (itemName: string) => {
       const { player } = gameState.current;
       if (!player.inventory[itemName]) player.inventory[itemName] = 0;
       player.inventory[itemName]++;
       recalculateStats(player);
-      resumeGame();
+      gameState.current.pendingLevelUp = false;
   };
 
   const restartGame = () => {
       gameState.current = createInitialState();
-      setUiState(prev => ({...prev, isGameOver: false}));
+      setUiState(prev => ({...prev, isGameOver: false, isPaused: false}));
   };
 
-  return { uiState, applyUpgrade, restartGame };
+  const togglePause = () => {
+      gameState.current.isPaused = !gameState.current.isPaused;
+      setUiState(prev => ({...prev, isPaused: gameState.current.isPaused}));
+  };
+
+  return { uiState, applyUpgrade, restartGame, togglePause };
 };
 
 

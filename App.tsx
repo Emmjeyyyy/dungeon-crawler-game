@@ -4,7 +4,7 @@ import { useGameLoop } from './hooks/useGameLoop';
 import GameCanvas from './components/GameCanvas';
 import HUD from './components/UI/HUD';
 import UpgradeModal from './components/UI/UpgradeModal';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw, Pause, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,8 +13,7 @@ const App: React.FC = () => {
 
   const onLevelUp = useCallback(() => setShowLevelUp(true), []);
   
-  // Removed unused 'resumeGame'
-  const { uiState, applyUpgrade, restartGame } = useGameLoop(canvasRef, onLevelUp);
+  const { uiState, applyUpgrade, restartGame, togglePause } = useGameLoop(canvasRef, onLevelUp);
 
   const handleStart = () => {
       setGameStarted(true);
@@ -24,6 +23,11 @@ const App: React.FC = () => {
   const handleUpgrade = (fn: any) => {
       applyUpgrade(fn);
       setShowLevelUp(false);
+  };
+
+  const handleQuit = () => {
+      restartGame();
+      setGameStarted(false);
   };
 
   return (
@@ -54,6 +58,29 @@ const App: React.FC = () => {
                     </span>
                 </button>
             </div>
+        )}
+
+        {/* Pause Menu */}
+        {gameStarted && uiState.isPaused && !uiState.isGameOver && (
+             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 animate-in fade-in">
+                 <h2 className="text-4xl font-black text-white mb-8 uppercase tracking-widest flex items-center gap-4">
+                     <Pause size={32} /> PAUSED
+                 </h2>
+                 <div className="flex flex-col gap-4 min-w-[200px]">
+                     <button 
+                        onClick={togglePause}
+                        className="px-8 py-3 bg-red-700 text-white font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <Play size={18} fill="currentColor" /> RESUME
+                    </button>
+                    <button 
+                        onClick={handleQuit}
+                        className="px-8 py-3 bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <LogOut size={18} /> MAIN MENU
+                    </button>
+                 </div>
+             </div>
         )}
 
         {/* Game Over */}
