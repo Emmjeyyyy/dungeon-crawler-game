@@ -830,32 +830,48 @@ export const useGameLoop = (
              ctx.scale(1, -1);
         }
 
-        // Subtract slight offset for handle overlap
         const weaponLen = (weapon.range || 50) - 5; 
 
         if (entity.currentWeapon === WeaponType.BLOOD_BLADE) {
-            // New Sharp Sword Drawing
-            ctx.fillStyle = '#334155'; // Dark Handle
-            ctx.fillRect(-4, -1.5, 6, 3);
+            // Pixel Art Interpretation of the provided asset
+            const s = 2.5; // Scale factor to match hitbox range (~60px)
+
+            // Handle (Dark Brown)
+            ctx.fillStyle = '#3f2e22'; 
+            ctx.fillRect(-4 * s, -1 * s, 5 * s, 2 * s);
             
-            ctx.fillStyle = '#94a3b8'; // Guard
-            ctx.fillRect(1, -5, 2, 10);
+            // Pommel (Dark Grey)
+            ctx.fillStyle = '#565963';
+            ctx.fillRect(-5 * s, -1.5 * s, 2 * s, 3 * s);
 
-            // Blade
-            ctx.fillStyle = weapon.color; // Red
+            // Guard (Light Grey)
+            ctx.fillStyle = '#8f939d';
+            ctx.fillRect(1 * s, -4 * s, 2 * s, 8 * s);
+            // Guard Shadow/Detail
+            ctx.fillStyle = '#565963';
+            ctx.fillRect(1.5 * s, -1 * s, 1 * s, 2 * s);
+
+            // Blade (Light Silver)
+            ctx.fillStyle = '#c7cfdd';
+            ctx.fillRect(3 * s, -2 * s, 14 * s, 4 * s);
+            
+            // Blade Edges (Darker Grey for depth)
+            ctx.fillStyle = '#8f939d';
+            ctx.fillRect(3 * s, -2 * s, 14 * s, 1 * s); // Top edge
+            ctx.fillRect(3 * s, 1 * s, 14 * s, 1 * s);  // Bottom edge
+            
+            // Central Ridge (Dark Line)
+            ctx.fillStyle = '#565963';
+            ctx.fillRect(3 * s, -0.5 * s, 13 * s, 1 * s);
+
+            // Tip (Tapering)
+            ctx.fillStyle = '#c7cfdd';
             ctx.beginPath();
-            ctx.moveTo(3, -3); 
-            ctx.lineTo(weaponLen, 0); // Tip
-            ctx.lineTo(3, 3);
+            ctx.moveTo(17 * s, -2 * s);
+            ctx.lineTo(20 * s, 0);
+            ctx.lineTo(17 * s, 2 * s);
             ctx.fill();
 
-            // Highlight
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.beginPath();
-            ctx.moveTo(3, 0);
-            ctx.lineTo(weaponLen - 2, 0);
-            ctx.lineTo(3, -2);
-            ctx.fill();
         } else if (entity.currentWeapon === WeaponType.DUAL_FANGS) {
             const daggerLen = weaponLen * 0.7; // Daggers are shorter than range usually imply
             ctx.fillStyle = weapon.color;
