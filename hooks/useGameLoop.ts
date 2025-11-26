@@ -799,14 +799,14 @@ export const useGameLoop = (
              // Draw Trail
              ctx.beginPath();
              // Outer Arc matches tip
-             ctx.arc(0, 0, range, -arcSize/2, arcSize/2, false);
+             ctx.arc(0, 0, range * 1.1, -arcSize/2, arcSize/2, false);
              // Inner Arc follows the blade edge
-             ctx.arc(0, 0, range * 0.6, arcSize/2, -arcSize/2, true); 
+             ctx.arc(0, 0, range * 0.75, arcSize/2, -arcSize/2, true); 
              ctx.closePath();
              
-             const gradient = ctx.createRadialGradient(0, 0, range * 0.6, 0, 0, range);
+             const gradient = ctx.createRadialGradient(0, 0, range * 0.6, 0, 0, range * 1.1);
              gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
-             gradient.addColorStop(0.2, '#ffffff'); // Hot Core closer to inner edge
+             gradient.addColorStop(0.4, '#ffffff'); // Hot Core closer to inner edge
              gradient.addColorStop(0.6, weapon.color); // Weapon Color
              gradient.addColorStop(1, `rgba(255, 255, 255, 0)`); // Fade edge
              
@@ -815,7 +815,7 @@ export const useGameLoop = (
              
              // Draw a sharp "Core" line for definition
              ctx.beginPath();
-             ctx.arc(0, 0, range * 0.8, -arcSize/2 * 0.9, arcSize/2 * 0.9, false);
+             ctx.arc(0, 0, range * 0.9, -arcSize/2 * 0.9, arcSize/2 * 0.9, false);
              ctx.strokeStyle = 'rgba(255,255,255,0.6)';
              ctx.lineWidth = 1.5;
              ctx.stroke();
@@ -830,19 +830,35 @@ export const useGameLoop = (
              ctx.scale(1, -1);
         }
 
-        ctx.fillStyle = weapon.color;
-        
-        // Draw Specific Weapons with Dynamic Length
         // Subtract slight offset for handle overlap
         const weaponLen = (weapon.range || 50) - 5; 
 
         if (entity.currentWeapon === WeaponType.BLOOD_BLADE) {
-            ctx.fillRect(0, -2, weaponLen, 4);
-            ctx.fillStyle = '#64748b';
-            ctx.fillRect(-4, -1, 4, 2);
-            ctx.fillRect(0, -6, 2, 12); // Guard
+            // New Sharp Sword Drawing
+            ctx.fillStyle = '#334155'; // Dark Handle
+            ctx.fillRect(-4, -1.5, 6, 3);
+            
+            ctx.fillStyle = '#94a3b8'; // Guard
+            ctx.fillRect(1, -5, 2, 10);
+
+            // Blade
+            ctx.fillStyle = weapon.color; // Red
+            ctx.beginPath();
+            ctx.moveTo(3, -3); 
+            ctx.lineTo(weaponLen, 0); // Tip
+            ctx.lineTo(3, 3);
+            ctx.fill();
+
+            // Highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            ctx.moveTo(3, 0);
+            ctx.lineTo(weaponLen - 2, 0);
+            ctx.lineTo(3, -2);
+            ctx.fill();
         } else if (entity.currentWeapon === WeaponType.DUAL_FANGS) {
             const daggerLen = weaponLen * 0.7; // Daggers are shorter than range usually imply
+            ctx.fillStyle = weapon.color;
             ctx.fillRect(0, -2, daggerLen, 4);
             ctx.fillStyle = '#64748b';
             ctx.fillRect(-2, 0, 4, 2);
@@ -1032,16 +1048,61 @@ export const useGameLoop = (
     });
 
     state.projectiles.forEach(proj => {
-        ctx.fillStyle = proj.color;
-        ctx.beginPath();
-        ctx.globalAlpha = 0.3;
-        ctx.arc(proj.x - proj.vx, proj.y - proj.vy, proj.width/2, 0, Math.PI*2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
+        ctx.save();
         
-        ctx.beginPath();
-        ctx.arc(proj.x, proj.y, proj.width/2, 0, Math.PI*2);
-        ctx.fill();
+        if (proj.renderStyle === 'WAVE') {
+             // BLOOD WAVE RENDER
+             ctx.translate(proj.x, proj.y);
+             const angle = Math.atan2(proj.vy, proj.vx);
+             ctx.rotate(angle);
+             
+             // Trail
+             ctx.globalCompositeOperation = 'lighter';
+             ctx.fillStyle = `rgba(239, 68, 68, 0.4)`;
+             ctx.beginPath();
+             ctx.arc(-10, 0, 20, -Math.PI/2, Math.PI/2);
+             ctx.fill();
+
+             // Core Crescent
+             const gradient = ctx.createLinearGradient(0, -15, 0, 15);
+             gradient.addColorStop(0, '#7f1d1d');
+             gradient.addColorStop(0.5, '#ef4444');
+             gradient.addColorStop(1, '#7f1d1d');
+             
+             ctx.fillStyle = gradient;
+             ctx.beginPath();
+             ctx.arc(0, 0, 15, -Math.PI/2, Math.PI/2, false);
+             ctx.quadraticCurveTo(-5, 0, 0, 15);
+             ctx.fill();
+             
+             // Highlight
+             ctx.fillStyle = '#fff';
+             ctx.globalAlpha = 0.8;
+             ctx.beginPath();
+             ctx.arc(2, 0, 12, -Math.PI/2.5, Math.PI/2.5, false);
+             ctx.quadraticCurveTo(0, 0, 2, 12);
+             ctx.fill();
+             
+             // Dripping Particles
+             if (Math.random() > 0.5) {
+                 createParticles(state, proj.x, proj.y, 1, '#7f1d1d');
+             }
+
+        } else {
+            // Default Projectile
+            ctx.fillStyle = proj.color;
+            ctx.beginPath();
+            ctx.globalAlpha = 0.3;
+            ctx.arc(proj.x - proj.vx, proj.y - proj.vy, proj.width/2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.width/2, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        ctx.restore();
     });
 
     state.particles.forEach(part => {
@@ -1173,6 +1234,7 @@ function activateRoom(state: GameState, room: Room) {
         let scale = 1;
         let hp = 30 + (state.dungeon.floor * 5);
         let color = C.COLORS.enemyStandard;
+        let size = 18; // Base visual size approximation
 
         if (state.dungeon.floor > 2 && roll > 0.8) {
             type = EnemyType.ELITE;
@@ -1181,12 +1243,16 @@ function activateRoom(state: GameState, room: Room) {
             color = C.COLORS.enemyElite;
         }
 
+        // Adjust size based on scale
+        const w = size * scale;
+        const h = size * scale;
+
         state.enemies.push({
             id: Math.random().toString(),
             type: EntityType.ENEMY,
             enemyType: type,
             x: ex, y: ey,
-            width: 32, height: 32,
+            width: w, height: h,
             vx: 0, vy: 0,
             facingX: 1, facingY: 0,
             color: color,
@@ -1396,6 +1462,33 @@ function handleAbility(state: GameState, slot: 'PRIMARY' | 'SECONDARY') {
         player.shadowStack = [];
     }
     
+    else if (abilityType === AbilityType.BLOOD_WAVE) {
+        // Blood Blade: Crimson Wave
+        const speed = 12;
+        const dmg = player.stats.damage * (config.damageMult || 2.0);
+        
+        state.projectiles.push({
+            id: Math.random().toString(),
+            type: EntityType.PROJECTILE,
+            ownerId: player.id,
+            x: player.x + player.width/2,
+            y: player.y + player.height/2,
+            width: 30, height: 30, // Visual size
+            vx: Math.cos(player.aimAngle) * speed,
+            vy: Math.sin(player.aimAngle) * speed,
+            damage: dmg,
+            color: config.color,
+            lifeTime: 30, // Short range
+            isDead: false,
+            piercing: true,
+            renderStyle: 'WAVE'
+        });
+
+        createParticles(state, player.x, player.y, 10, '#ef4444');
+        state.camera.shake = 10;
+        // Blood drippings are handled in rendering/update
+    }
+
     // Weapon Specific Secondaries
     else if (abilityType === AbilityType.WHIRLING_FLURRY) {
         // Dual Fangs: Dash + Spin
@@ -1409,35 +1502,9 @@ function handleAbility(state: GameState, slot: 'PRIMARY' | 'SECONDARY') {
     }
 
     else if (abilityType === AbilityType.HEAVY_SWING) {
-        // Blood Blade: Big Frontal Arc
+        // Fallback or deprecated
         createParticles(state, player.x, player.y, 15, config.color);
         state.camera.shake = 15;
-        state.hitStop = 5;
-        
-        // Manual Heavy Hitbox
-        const range = 100;
-        const arc = Math.PI; 
-        const damage = player.stats.damage * (config.damageMult || 3.0);
-        
-        state.enemies.forEach(e => {
-            const cx = player.x + player.width/2;
-            const cy = player.y + player.height/2;
-            const dist = Math.sqrt((e.x + e.width/2 - cx)**2 + (e.y + e.height/2 - cy)**2);
-            
-            if (dist < range) {
-                const angleToEnemy = Math.atan2(e.y - cy, e.x - cx);
-                let diff = angleToEnemy - player.aimAngle;
-                while (diff > Math.PI) diff -= Math.PI*2;
-                while (diff < -Math.PI) diff += Math.PI*2;
-                
-                if (Math.abs(diff) < arc/2) {
-                    dealDamage(state, e, damage, true); // Auto Crit
-                    e.vx += Math.cos(angleToEnemy) * 20;
-                    e.vy += Math.sin(angleToEnemy) * 20;
-                    state.echoes.forEach(echo => echo.targetId = e.id);
-                }
-            }
-        });
     }
 
     else if (abilityType === AbilityType.GROUND_CLEAVE) {
@@ -1486,21 +1553,31 @@ function handleAbility(state: GameState, slot: 'PRIMARY' | 'SECONDARY') {
 }
 
 function updateEnemies(state: GameState, onLevelUp: () => void) {
+    const pcx = state.player.x + state.player.width / 2;
+    const pcy = state.player.y + state.player.height / 2;
+
     state.enemies.forEach(e => {
         e.vx *= 0.9;
         e.vy *= 0.9;
         
-        const dist = Math.sqrt((state.player.x - e.x)**2 + (state.player.y - e.y)**2);
+        const ecx = e.x + e.width / 2;
+        const ecy = e.y + e.height / 2;
+
+        const dist = Math.sqrt((pcx - ecx)**2 + (pcy - ecy)**2);
         
         if (dist < e.agroRange) {
-            const angle = Math.atan2(state.player.y - e.y, state.player.x - e.x);
+            const angle = Math.atan2(pcy - ecy, pcx - ecx);
             const speed = e.enemyType === EnemyType.ELITE ? 1.2 : 2.0;
             e.vx += Math.cos(angle) * speed * 0.1;
             e.vy += Math.sin(angle) * speed * 0.1;
             e.facingX = Math.sign(Math.cos(angle));
 
             // Damage player if not invulnerable
-            if (dist < 40 && e.attackCooldown <= 0 && state.player.invulnTimer <= 0) {
+            // Use tighter center-to-center check. 
+            // Overlap = radii sum. Reduce by factor to require 'deep' hit or touch.
+            const overlapThreshold = (state.player.width/2 + e.width/2) * 0.9;
+
+            if (dist < overlapThreshold && e.attackCooldown <= 0 && state.player.invulnTimer <= 0) {
                 state.player.hp -= e.damage;
                 state.player.hitFlashTimer = 10;
                 e.attackCooldown = 60;
@@ -1732,6 +1809,7 @@ function updateProjectiles(state: GameState) {
                 if (rectIntersect(p, e)) {
                     dealDamage(state, e, p.damage, false);
                     createParticles(state, p.x, p.y, 3, p.color);
+                    
                     if (!p.piercing) {
                         p.lifeTime = 0;
                         break;

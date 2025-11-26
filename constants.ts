@@ -10,7 +10,7 @@ export const FRICTION = 0.82;
 export const PLAYER_SPEED = 3.5; // Faster base speed
 export const PLAYER_DASH_FORCE = 22;
 
-export const PLAYER_SIZE = { width: 32, height: 32 };
+export const PLAYER_SIZE = { width: 16, height: 16 }; // Reduced from 32x32 to Torso size
 export const PLAYER_BASE_HP = 100;
 export const PLAYER_BASE_DAMAGE = 12;
 
@@ -42,12 +42,12 @@ export const WEAPONS = {
     cooldown: 18,
     description: 'Balanced slash attacks.',
     secondary: {
-        type: AbilityType.HEAVY_SWING,
-        name: 'Heavy Swing',
-        cooldown: 120, // 2s
+        type: AbilityType.BLOOD_WAVE,
+        name: 'Blood Wave',
+        cooldown: 180, // 3s
         color: '#dc2626',
-        damageMult: 3.0,
-        description: 'Powerful frontal strike.'
+        damageMult: 2.0,
+        description: 'Launch a crimson wave that harvests souls.'
     }
   },
   [WeaponType.DUAL_FANGS]: {

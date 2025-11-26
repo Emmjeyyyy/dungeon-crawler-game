@@ -40,10 +40,17 @@ export enum AbilityType {
   SHADOW_CALL = 'SHADOW_CALL', // Primary (Q)
   
   // Weapon Specific Secondaries
-  HEAVY_SWING = 'HEAVY_SWING', // Blood Blade
+  BLOOD_WAVE = 'BLOOD_WAVE', // Blood Blade (New)
+  HEAVY_SWING = 'HEAVY_SWING', // Deprecated but kept for compatibility if needed
   WHIRLING_FLURRY = 'WHIRLING_FLURRY', // Dual Fangs
   GROUND_CLEAVE = 'GROUND_CLEAVE', // Reaper Axe
-  PIERCING_VOLLEY = 'PIERCING_VOLLEY' // Shadow Bow
+  PIERCING_VOLLEY = 'PIERCING_VOLLEY', // Shadow Bow
+  
+  // Map Pickups (Disabled for now)
+  SAMURAI_SLASH = 'SAMURAI_SLASH',
+  BLOOD_NOVA = 'BLOOD_NOVA',
+  PHASE_SHIFT = 'PHASE_SHIFT',
+  SPECTRAL_DAGGERS = 'SPECTRAL_DAGGERS'
 }
 
 export enum ItemRarity {
@@ -197,6 +204,7 @@ export interface Projectile extends Entity {
   ownerId: string;
   lifeTime: number;
   piercing?: boolean;
+  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER'; // For visual distinction
 }
 
 export interface Particle extends Entity {
