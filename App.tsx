@@ -1,20 +1,24 @@
 
-
 import React, { useRef, useState, useCallback } from 'react';
 import { useGameLoop } from './hooks/useGameLoop';
 import GameCanvas from './components/GameCanvas';
 import HUD from './components/UI/HUD';
 import UpgradeModal from './components/UI/UpgradeModal';
+import DebugMenu from './components/UI/DebugMenu';
 import { Play, RotateCcw, Pause, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [secretCode, setSecretCode] = useState('');
 
   const onLevelUp = useCallback(() => setShowLevelUp(true), []);
   
-  const { uiState, applyUpgrade, restartGame, togglePause } = useGameLoop(canvasRef, onLevelUp);
+  const { 
+      uiState, applyUpgrade, restartGame, togglePause, enterTestMode,
+      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp 
+  } = useGameLoop(canvasRef, onLevelUp);
 
   const handleStart = () => {
       setGameStarted(true);
@@ -29,6 +33,17 @@ const App: React.FC = () => {
   const handleQuit = () => {
       restartGame();
       setGameStarted(false);
+      setSecretCode('');
+  };
+
+  const handleSecretCode = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+          if (secretCode === 'ASDASD') {
+              setGameStarted(true);
+              enterTestMode();
+              setSecretCode('');
+          }
+      }
   };
 
   return (
@@ -38,6 +53,15 @@ const App: React.FC = () => {
         <GameCanvas ref={canvasRef} />
         
         {gameStarted && !uiState.isGameOver && <HUD {...uiState} />}
+        
+        {/* Debug UI */}
+        {gameStarted && uiState.isTestMode && !uiState.isPaused && (
+            <DebugMenu 
+                onSpawnEnemy={debugSpawnEnemy}
+                onSetWeapon={debugSetWeapon}
+                onLevelUp={debugTriggerLevelUp}
+            />
+        )}
 
         {/* Start Screen */}
         {!gameStarted && (
@@ -51,13 +75,25 @@ const App: React.FC = () => {
                 
                 <button 
                     onClick={handleStart}
-                    className="group relative px-12 py-4 bg-red-700 hover:bg-red-600 text-white font-bold text-xl rounded-sm transition-all overflow-hidden"
+                    className="group relative px-12 py-4 bg-red-700 hover:bg-red-600 text-white font-bold text-xl rounded-sm transition-all overflow-hidden mb-8"
                 >
                     <div className="absolute inset-0 bg-red-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                     <span className="relative flex items-center gap-2">
                         <Play fill="currentColor" /> ENTER THE SPIRE
                     </span>
                 </button>
+
+                <div className="absolute bottom-8 right-8 opacity-20 hover:opacity-100 transition-opacity flex flex-col items-end">
+                    <label className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Developer Access</label>
+                    <input 
+                        type="password"
+                        value={secretCode}
+                        onChange={(e) => setSecretCode(e.target.value)}
+                        onKeyDown={handleSecretCode}
+                        className="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 text-xs rounded focus:border-red-500 outline-none w-32 text-right"
+                        placeholder="Passcode"
+                    />
+                </div>
             </div>
         )}
 

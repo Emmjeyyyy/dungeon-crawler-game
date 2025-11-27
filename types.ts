@@ -269,5 +269,6 @@ export interface GameState {
   hitStop: number;
   isGameOver: boolean;
   isPaused: boolean;
+  isTestMode: boolean;
   pendingLevelUp: boolean;
 }

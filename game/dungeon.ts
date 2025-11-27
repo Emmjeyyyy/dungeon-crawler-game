@@ -1,8 +1,37 @@
+
 import { Dungeon, GameState, ItemType, Room, TileType, WeaponType, EntityType, EnemyType } from '../types';
 import * as C from '../constants';
 import { rectIntersect } from './physics';
 import { createParticles } from './spawners';
 import { spawnDamageNumber } from './spawners';
+
+export const createTestDungeon = (): Dungeon => {
+    const width = 40;
+    const height = 30;
+    const grid: TileType[][] = Array(height).fill(null).map(() => Array(width).fill(TileType.VOID));
+    
+    // Create one massive room
+    for(let y = 0; y < height; y++) {
+        for(let x = 0; x < width; x++) {
+            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                grid[y][x] = TileType.WALL;
+            } else {
+                grid[y][x] = TileType.FLOOR;
+            }
+        }
+    }
+
+    // A single logical room encompassing the whole area
+    const rooms: Room[] = [{
+        id: 'test-chamber',
+        x: 1, y: 1, width: width - 2, height: height - 2,
+        isCleared: true, // Prevent spawning / door closing logic
+        isActive: true,
+        doorTiles: []
+    }];
+
+    return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor: 0, portalRoomId: '' };
+};
 
 export const createDungeon = (floor: number): Dungeon => {
   const width = 60;
@@ -100,6 +129,9 @@ export const createDungeon = (floor: number): Dungeon => {
 };
 
 export const updateDungeonState = (state: GameState) => {
+    // Skip room logic in test mode
+    if (state.isTestMode) return;
+
     const { player, dungeon } = state;
     const pcx = player.x + player.width / 2;
     const pcy = player.y + player.height / 2;

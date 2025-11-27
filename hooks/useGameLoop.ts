@@ -1,5 +1,6 @@
+
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { GameState, ItemType, WeaponType, AbilityType, Item, Inventory } from '../types';
+import { GameState, ItemType, WeaponType, AbilityType, Item, Inventory, EntityType, EnemyType } from '../types';
 import * as stateManager from '../game/state';
 import * as playerUpdater from '../game/player';
 import * as enemyUpdater from '../game/enemy';
@@ -7,6 +8,8 @@ import * as entityUpdaters from '../game/entityUpdaters';
 import * as dungeonManager from '../game/dungeon';
 import * as cameraManager from '../game/camera';
 import * as renderer from '../game/rendering';
+import { createParticles } from '../game/spawners';
+import * as C from '../constants';
 
 export const useGameLoop = (
   canvasRef: React.RefObject<HTMLCanvasElement>,
@@ -19,7 +22,7 @@ export const useGameLoop = (
 
   const [uiState, setUiState] = useState({
     hp: 100, maxHp: 100, xp: 0, maxXp: 100,
-    level: 1, floor: 1, echoCount: 0, isGameOver: false, isPaused: false,
+    level: 1, floor: 1, echoCount: 0, isGameOver: false, isPaused: false, isTestMode: false,
     activeAbility: AbilityType.SHADOW_CALL, activeAbilityCooldown: 0,
     secondaryAbility: null as AbilityType | null, secondaryAbilityCooldown: 0,
     combo: 0, activeBuffs: [] as {type: ItemType, timer: number}[],
@@ -27,14 +30,20 @@ export const useGameLoop = (
     inventory: {} as Inventory, currentWeapon: WeaponType.BLOOD_BLADE
   });
 
+  const togglePause = useCallback(() => {
+      const state = gameState.current;
+      if (!state.isGameOver && !state.pendingLevelUp) {
+          state.isPaused = !state.isPaused;
+          // Force UI update so Pause Menu renders
+          setUiState(prev => ({...prev, isPaused: state.isPaused}));
+      }
+  }, []);
+
   useEffect(() => {
     const onKD = (e: KeyboardEvent) => {
         inputRef.current.add(e.code);
         if (e.code === 'Escape') {
-            const state = gameState.current;
-            if (!state.isGameOver && !state.pendingLevelUp) {
-                state.isPaused = !state.isPaused;
-            }
+            togglePause();
         }
     };
     const onKU = (e: KeyboardEvent) => inputRef.current.delete(e.code);
@@ -64,7 +73,7 @@ export const useGameLoop = (
       window.removeEventListener('mousedown', onMD);
       window.removeEventListener('mouseup', onMU);
     };
-  }, [canvasRef]);
+  }, [canvasRef, togglePause]);
 
   const update = useCallback(() => {
     const state = gameState.current;
@@ -97,7 +106,7 @@ export const useGameLoop = (
         xp: state.player.xp, maxXp: state.player.maxXp,
         level: state.player.level, floor: state.dungeon.floor,
         echoCount: state.echoes.length,
-        isGameOver: state.isGameOver, isPaused: state.isPaused,
+        isGameOver: state.isGameOver, isPaused: state.isPaused, isTestMode: state.isTestMode,
         activeAbility: state.player.activeAbility,
         activeAbilityCooldown: state.player.abilityCooldown,
         secondaryAbility: null,
@@ -141,12 +150,69 @@ export const useGameLoop = (
 
   const restartGame = () => {
       gameState.current = stateManager.createInitialState();
-      setUiState(prev => ({...prev, isGameOver: false, isPaused: false}));
+      setUiState(prev => ({...prev, isGameOver: false, isPaused: false, isTestMode: false}));
   };
 
-  const togglePause = () => {
-      gameState.current.isPaused = !gameState.current.isPaused;
+  const enterTestMode = () => {
+      gameState.current = stateManager.createTestState();
+      setUiState(prev => ({...prev, isGameOver: false, isPaused: false, isTestMode: true}));
   };
 
-  return { uiState, applyUpgrade, restartGame, togglePause };
+  // DEBUG ACTIONS
+  const debugSpawnEnemy = (type: EnemyType) => {
+      const state = gameState.current;
+      const ex = state.player.x + (Math.random() - 0.5) * 300;
+      const ey = state.player.y + (Math.random() - 0.5) * 300;
+      
+      let scale = 1;
+      let hp = 100;
+      let color = C.COLORS.enemyStandard;
+      
+      if (type === EnemyType.ELITE) { scale = 1.5; hp = 200; color = C.COLORS.enemyElite; }
+      else if (type === EnemyType.BOSS) { scale = 2.0; hp = 1000; color = C.COLORS.enemyBoss; }
+      else if (type === EnemyType.MYSTIC) { color = C.COLORS.enemyMystic; }
+
+      const w = 18 * scale;
+      const h = 18 * scale;
+
+      state.enemies.push({
+          id: `enemy-${Math.random()}`,
+          type: EntityType.ENEMY,
+          enemyType: type,
+          x: ex, y: ey,
+          width: w, height: h,
+          vx: 0, vy: 0,
+          facingX: 1, facingY: 0,
+          color: color,
+          isDead: false,
+          hp, maxHp: hp,
+          damage: 10,
+          attackCooldown: 0,
+          maxAttackCooldown: 60,
+          targetId: null,
+          xpValue: 100,
+          agroRange: 2000,
+          hitFlashTimer: 0,
+          scale,
+          bleedStack: 0,
+          bleedTimer: 0
+      });
+      createParticles(state, ex, ey, 10, '#ffffff');
+  };
+
+  const debugSetWeapon = (weapon: WeaponType) => {
+      const state = gameState.current;
+      state.player.currentWeapon = weapon;
+  };
+
+  const debugTriggerLevelUp = () => {
+      const state = gameState.current;
+      state.pendingLevelUp = true;
+      onLevelUp();
+  };
+
+  return { 
+      uiState, applyUpgrade, restartGame, togglePause, enterTestMode,
+      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp
+  };
 };

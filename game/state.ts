@@ -1,6 +1,7 @@
+
 import { GameState, Player, WeaponType, AbilityType, EntityType } from '../types';
 import * as C from '../constants';
-import { createDungeon } from './dungeon';
+import { createDungeon, createTestDungeon } from './dungeon';
 
 export const recalculateStats = (player: Player) => {
     player.maxHp = C.PLAYER_BASE_HP;
@@ -80,6 +81,48 @@ export const createInitialState = (): GameState => {
     interactionItem: null,
     camera: { x: camX, y: camY, shake: 0 },
     score: 0, time: 0, timeScale: 1.0,
-    hitStop: 0, isGameOver: false, isPaused: false, pendingLevelUp: false,
+    hitStop: 0, isGameOver: false, isPaused: false, isTestMode: false, pendingLevelUp: false,
+  };
+};
+
+export const createTestState = (): GameState => {
+  const dungeon = createTestDungeon();
+  const startRoom = dungeon.rooms[0];
+  // Center of the test map
+  const px = (dungeon.width * C.TILE_SIZE) / 2;
+  const py = (dungeon.height * C.TILE_SIZE) / 2;
+  
+  const camX = -(px - C.CANVAS_WIDTH / 2 + C.PLAYER_SIZE.width / 2);
+  const camY = -(py - C.CANVAS_HEIGHT / 2 + C.PLAYER_SIZE.height / 2);
+
+  const player: Player = {
+      id: 'player',
+      type: EntityType.PLAYER,
+      x: px, y: py,
+      width: C.PLAYER_SIZE.width, height: C.PLAYER_SIZE.height,
+      vx: 0, vy: 0, color: C.COLORS.player, isDead: false,
+      hp: 1000, maxHp: 1000, // Boosted stats for testing
+      level: 1, runes: 9999, xp: 0, maxXp: 100,
+      facingX: 1, facingY: 1, aimAngle: 0,
+      isDashing: false, isSlashDashing: false, isAttacking: false,
+      attackCooldown: 0, maxAttackCooldown: 0, heavyAttackCooldown: 0, dashCooldown: 0,
+      abilityCooldown: 0, secondaryAbilityCooldown: 0, interactionCooldown: 0,
+      invulnTimer: 0, hitFlashTimer: 0, slashDashTimer: 0,
+      currentWeapon: WeaponType.BLOOD_BLADE,
+      inventory: {},
+      activeAbility: AbilityType.SHADOW_CALL,
+      stats: { damage: 50, speed: C.PLAYER_SPEED * 1.5, attackSpeed: 1.0, critChance: 0.1, echoDurationMult: 1.0 },
+      shadowStack: [],
+      combo: 0, comboTimer: 0, maxCombo: 0,
+      activeBuffs: []
+  };
+
+  return {
+    dungeon, player,
+    enemies: [], echoes: [], projectiles: [], particles: [], items: [], damageNumbers: [],
+    interactionItem: null,
+    camera: { x: camX, y: camY, shake: 0 },
+    score: 0, time: 0, timeScale: 1.0,
+    hitStop: 0, isGameOver: false, isPaused: false, isTestMode: true, pendingLevelUp: false,
   };
 };
