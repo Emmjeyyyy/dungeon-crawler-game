@@ -109,51 +109,37 @@ const drawCharacter = (
 
             const range = weapon.range || 50;
             const arcSize = weapon.arc || Math.PI;
-            
-            const createCrescentPath = (ctx: CanvasRenderingContext2D, r: number, arc: number, innerRScale: number) => {
-                const innerRadius = r * innerRScale;
-                const startAngle = -arc / 2;
-                const endAngle = arc / 2;
 
+            // Custom Procedural Slash Path
+            const createSlashPath = (ctx: CanvasRenderingContext2D, r: number, arc: number) => {
+                const halfArc = arc / 2;
+                // Outer curve
                 ctx.beginPath();
-                ctx.arc(0, 0, r, startAngle, endAngle, false);
-                const innerEndX = Math.cos(endAngle) * innerRadius;
-                const innerEndY = Math.sin(endAngle) * innerRadius;
-                ctx.lineTo(innerEndX, innerEndY);
-                ctx.arc(0, 0, innerRadius, endAngle, startAngle, true);
+                ctx.arc(0, 0, r, -halfArc, halfArc, false);
+                // Sharp tapered return
+                ctx.quadraticCurveTo(r * 0.6, 0, Math.cos(-halfArc) * r, Math.sin(-halfArc) * r);
                 ctx.closePath();
             };
 
-            // 1. Outer Glow
-            ctx.shadowBlur = 25;
+            // 1. Outer Glow (Soft Aura)
+            ctx.shadowBlur = 20;
             ctx.shadowColor = weapon.color;
-            createCrescentPath(ctx, range, arcSize, 0.4);
             ctx.fillStyle = weapon.color;
+            ctx.globalAlpha = 0.3 * Math.sin(progress * Math.PI);
+            createSlashPath(ctx, range * 1.1, arcSize);
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 2. Main Color Body
+            // 2. Main Color Body (Solid Blade)
             ctx.fillStyle = weapon.color;
-            createCrescentPath(ctx, range, arcSize, 0.5);
+            ctx.globalAlpha = 0.8 * Math.sin(progress * Math.PI);
+            createSlashPath(ctx, range, arcSize);
             ctx.fill();
-            
-            // 3. Inner texture lines
-            ctx.save();
-            createCrescentPath(ctx, range, arcSize, 0.5);
-            ctx.clip();
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
-            for (let i = 0; i < 3; i++) {
-                const streakRadius = range * (0.65 + i * 0.1);
-                ctx.beginPath();
-                ctx.arc(0, 0, streakRadius, -arcSize / 2, arcSize / 2, false);
-                ctx.stroke();
-            }
-            ctx.restore();
 
-            // 4. White Hot Core
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            createCrescentPath(ctx, range * 0.85, arcSize, 0.5);
+            // 3. White Hot Core (Cutting Edge)
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.9 * Math.sin(progress * Math.PI);
+            createSlashPath(ctx, range * 0.9, arcSize * 0.9);
             ctx.fill();
 
             ctx.restore();
@@ -175,4 +161,184 @@ const drawCharacter = (
             ctx.fillStyle = '#8f939d'; ctx.fillRect(1 * s, -4 * s, 2 * s, 8 * s);
             ctx.fillStyle = '#565963'; ctx.fillRect(1.5 * s, -1 * s, 1 * s, 2 * s);
             ctx.fillStyle = '#c7cfdd'; ctx.fillRect(3 * s, -2 * s, 14 * s, 4 * s);
-            ctx.fillStyle = '#8f
+            ctx.fillStyle = '#8f939d'; ctx.fillRect(3 * s, 0, 14 * s, 1 * s);
+        } else if (entity.currentWeapon === WeaponType.DUAL_FANGS) {
+            ctx.translate(-4, 0);
+            ctx.fillStyle = '#525252'; ctx.fillRect(-2, -2, 8, 4);
+            ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(16, -4); ctx.lineTo(12, 0); ctx.lineTo(16, 4); ctx.fill();
+        } else if (entity.currentWeapon === WeaponType.REAPER_AXE) {
+            ctx.translate(-10, 0);
+            ctx.fillStyle = '#451a03'; ctx.fillRect(0, -2, 40, 4);
+            ctx.fillStyle = '#991b1b'; ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(36, -16); ctx.lineTo(44, 0); ctx.lineTo(36, 16); ctx.fill();
+        } else if (entity.currentWeapon === WeaponType.SHADOW_BOW) {
+            ctx.translate(2, 0);
+            ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(5, 0, 12, -Math.PI/2, Math.PI/2); ctx.stroke();
+            ctx.fillStyle = '#cbd5e1'; ctx.fillRect(5, -12, 2, 24);
+        }
+
+        ctx.restore();
+    }
+    
+    ctx.restore();
+};
+
+const drawDungeon = (ctx: CanvasRenderingContext2D, state: GameState) => {
+    const { dungeon, camera } = state;
+    const startCol = Math.floor((-camera.x) / C.TILE_SIZE);
+    const endCol = startCol + (C.CANVAS_WIDTH / C.TILE_SIZE) + 1;
+    const startRow = Math.floor((-camera.y) / C.TILE_SIZE);
+    const endRow = startRow + (C.CANVAS_HEIGHT / C.TILE_SIZE) + 1;
+
+    for (let y = startRow; y <= endRow; y++) {
+        for (let x = startCol; x <= endCol; x++) {
+            if (y < 0 || y >= dungeon.height || x < 0 || x >= dungeon.width) continue;
+            
+            const tile = dungeon.grid[y][x];
+            const px = x * C.TILE_SIZE;
+            const py = y * C.TILE_SIZE;
+
+            if (tile === TileType.FLOOR || tile === TileType.DOOR_OPEN) {
+                const isAlt = (x + y) % 2 === 0;
+                ctx.fillStyle = isAlt ? C.COLORS.floor : C.COLORS.floorAlt;
+                ctx.fillRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
+                
+                // Grid overlay
+                ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                ctx.strokeRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
+            } 
+            else if (tile === TileType.WALL) {
+                ctx.fillStyle = C.COLORS.wall;
+                ctx.fillRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
+                // 3D effect
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(px, py + C.TILE_SIZE - 10, C.TILE_SIZE, 10);
+            }
+            else if (tile === TileType.DOOR_CLOSED) {
+                ctx.fillStyle = C.COLORS.doorClosed;
+                ctx.fillRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + C.TILE_SIZE, py + C.TILE_SIZE);
+                ctx.moveTo(px + C.TILE_SIZE, py); ctx.lineTo(px, py + C.TILE_SIZE);
+                ctx.stroke();
+            }
+        }
+    }
+};
+
+export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => {
+    // Clear Screen
+    ctx.fillStyle = C.COLORS.background;
+    ctx.fillRect(0, 0, C.CANVAS_WIDTH, C.CANVAS_HEIGHT);
+
+    ctx.save();
+    
+    // Camera Shake
+    const shakeX = (Math.random() - 0.5) * state.camera.shake;
+    const shakeY = (Math.random() - 0.5) * state.camera.shake;
+    ctx.translate(state.camera.x + shakeX, state.camera.y + shakeY);
+
+    // Draw Map
+    drawDungeon(ctx, state);
+
+    // Draw Shadows (Decals)
+    state.enemies.forEach(e => {
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath(); ctx.ellipse(e.x + e.width/2, e.y + e.height - 2, e.width/2, 6, 0, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath(); ctx.ellipse(state.player.x + state.player.width/2, state.player.y + state.player.height - 2, state.player.width/2, 6, 0, 0, Math.PI*2); ctx.fill();
+
+    // Draw Items
+    state.items.forEach(item => {
+        const bounce = Math.sin(state.time * 0.1 + item.floatOffset * 10) * 5;
+        ctx.save();
+        ctx.translate(item.x + item.width/2, item.y + item.height/2 + bounce);
+        
+        // Glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = item.color;
+        
+        if (item.itemType === ItemType.PORTAL) {
+             const angle = state.time * 0.05;
+             ctx.rotate(angle);
+             ctx.fillStyle = C.COLORS.portal;
+             ctx.fillRect(-15, -15, 30, 30);
+             ctx.rotate(-angle * 2);
+             ctx.strokeStyle = '#fff';
+             ctx.strokeRect(-10, -10, 20, 20);
+        } else {
+            ctx.fillStyle = item.color;
+            if (item.itemType === ItemType.WEAPON_DROP) {
+                 ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(8, 0); ctx.lineTo(0, 10); ctx.lineTo(-8, 0); ctx.fill();
+            } else {
+                 ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        ctx.restore();
+    });
+
+    // Draw Entities
+    // Sort by Y for depth
+    const entities: (Player | Enemy | Echo)[] = [...state.enemies, ...state.echoes, state.player];
+    entities.sort((a, b) => (a.y + a.height) - (b.y + b.height));
+    
+    entities.forEach(e => {
+        if (!e.isDead) drawCharacter(ctx, e, state.time);
+    });
+
+    // Draw Projectiles
+    state.projectiles.forEach(p => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(Math.atan2(p.vy, p.vx));
+        
+        if (p.renderStyle === 'WAVE') {
+             ctx.fillStyle = p.color;
+             ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+             ctx.beginPath(); ctx.arc(0, 0, p.width, -Math.PI/2, Math.PI/2); ctx.fill();
+        } else {
+             ctx.fillStyle = p.color;
+             ctx.fillRect(-p.width/2, -p.height/2, p.width, p.height);
+             // Trail
+             ctx.globalAlpha = 0.3;
+             ctx.fillStyle = p.color;
+             ctx.fillRect(-p.width*2, -p.height/2, p.width*2, p.height);
+        }
+        ctx.restore();
+    });
+
+    // Draw Particles
+    state.particles.forEach(p => {
+        ctx.globalAlpha = p.lifeTime / p.maxLifeTime;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.width, p.height);
+    });
+
+    // Draw Damage Numbers
+    state.damageNumbers.forEach(dn => {
+        ctx.save();
+        ctx.globalAlpha = dn.lifeTime / dn.maxLifeTime;
+        ctx.fillStyle = dn.color;
+        ctx.font = dn.isCrit ? 'bold 24px Arial' : 'bold 16px Arial';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.strokeText(Math.round(dn.value).toString(), dn.x, dn.y);
+        ctx.fillText(Math.round(dn.value).toString(), dn.x, dn.y);
+        ctx.restore();
+    });
+
+    // Health Bars for Enemies
+    state.enemies.forEach(e => {
+        if (e.hp < e.maxHp) {
+            const hpPct = e.hp / e.maxHp;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(e.x, e.y - 10, e.width, 4);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(e.x, e.y - 10, e.width * hpPct, 4);
+        }
+    });
+
+    ctx.restore();
+};
