@@ -213,8 +213,7 @@ const drawCharacter = (
                 const s = 2.0;
                 
                 // Handle (Dark Wood/Leather) - Extended for reach
-                ctx.fillStyle = '#451a03'; // Deep brown
-                ctx.fillRect(0, -1*s, 40*s, 2*s); // Start at hand (0), go out 80px
+                ctx.fillStyle = '#451a03'; ctx.fillRect(0, -1*s, 40*s, 2*s); // Start at hand (0), go out 80px
                 
                 // Grip Wraps
                 ctx.fillStyle = '#78350f';
@@ -277,52 +276,9 @@ const drawCharacter = (
                      swingOffset = Math.sin(time * 0.1) * 0.1;
                 }
     
-                // SWOOSH EFFECT
-                if (p.isAttacking && progress > 0.05 && progress < 0.95) {
-                    ctx.save();
-                    ctx.rotate(baseRot);
-                    ctx.globalAlpha = Math.sin(progress * Math.PI);
-                    ctx.lineCap = 'round';
-                    const range = weapon.range || 50;
-                    const arcSize = weapon.arc || Math.PI;
-    
-                    const glowWidth = 16;
-                    ctx.lineWidth = glowWidth;
-                    ctx.strokeStyle = weapon.color;
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = weapon.color;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, range - glowWidth / 2, -arcSize / 2, arcSize / 2);
-                    ctx.stroke();
-                    
-                    ctx.shadowBlur = 0;
-                    
-                    const mainWidth = 10;
-                    ctx.lineWidth = mainWidth;
-                    ctx.strokeStyle = weapon.color;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, range - mainWidth / 2, -arcSize / 2, arcSize / 2);
-                    ctx.stroke();
-                    
-                    const coreWidth = 4;
-                    ctx.lineWidth = coreWidth;
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, range - coreWidth / 2, -arcSize / 2, arcSize / 2);
-                    ctx.stroke();
-                    
-                    ctx.restore();
-                }
-    
                 ctx.rotate(baseRot + swingOffset);
                 if (Math.abs(baseRot) > Math.PI / 2) ctx.scale(1, -1);
                 
-                if (p.isAttacking && progress > 0.2 && progress < 0.8) {
-                    ctx.save(); ctx.rotate(swingOffset * -0.2); ctx.globalAlpha = 0.3;
-                    ctx.fillStyle = weapon.color; ctx.fillRect(0, -2, weapon.range - 5, 4);
-                    ctx.restore();
-                }
-    
                 if (p.currentWeapon === WeaponType.BLOOD_BLADE) {
                     const s = 2.5;
                     ctx.fillStyle = '#3f2e22'; ctx.fillRect(-4 * s, -1 * s, 5 * s, 2 * s);
@@ -398,7 +354,15 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         }
     }
 
-    // 3. Render Items
+    // 3. Render Particles (MOVED HERE: Behind Entities)
+    state.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.lifeTime / p.maxLifeTime;
+        ctx.fillRect(p.x, p.y, p.width, p.height);
+        ctx.globalAlpha = 1.0;
+    });
+
+    // 4. Render Items
     state.items.forEach(item => {
         const floatY = Math.sin(state.time * 0.1 + item.floatOffset * 10) * 5;
         const cx = item.x + item.width / 2;
@@ -427,7 +391,7 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         ctx.restore();
     });
 
-    // 4. Render Entities
+    // 5. Render Entities
     const allEntities = [state.player, ...state.enemies, ...state.echoes];
     allEntities.sort((a, b) => (a.y + a.height) - (b.y + b.height));
 
@@ -437,7 +401,7 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         }
     });
 
-    // 5. Render Projectiles
+    // 6. Render Projectiles
     state.projectiles.forEach(p => {
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -455,14 +419,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              ctx.beginPath(); ctx.arc(0, 0, p.width/2, 0, Math.PI*2); ctx.fill();
         }
         ctx.restore();
-    });
-
-    // 6. Render Particles
-    state.particles.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.lifeTime / p.maxLifeTime;
-        ctx.fillRect(p.x, p.y, p.width, p.height);
-        ctx.globalAlpha = 1.0;
     });
 
     // 7. Render Damage Numbers
