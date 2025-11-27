@@ -62,7 +62,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         // EXECUTIONER SWIRL LOGIC
         player.spinTimer--;
         
-        const orbitRadius = 60;
+        const orbitRadius = 48; // Reduced from 60
         const spinSpeed = 0.5;
         const spinAngle = state.time * spinSpeed;
         const axeHeadX = pCenterX + Math.cos(spinAngle) * orbitRadius;
@@ -177,21 +177,31 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         // Animation Progress (0 to 1)
         const progress = 1 - (player.attackCooldown / player.maxAttackCooldown);
         
-        // Calculate Swing Angle (Sine Wave matching visual)
+        // Calculate Swing Angle
+        // We want a Top-to-Bottom swing visually.
+        // In standard coordinates:
+        // Right Facing: Top (-Angle) to Bottom (+Angle) is Clockwise (Increasing).
+        // Left Facing: Top (Up-Left) to Bottom (Down-Left) is Counter-Clockwise (Decreasing).
         let swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
 
-        // FIX: Invert Swing Offset if facing left to ensure top-to-bottom swing
+        // Invert swing offset when facing left to ensure top-to-bottom swing in World Space
         if (Math.abs(player.aimAngle) > Math.PI / 2) {
             swingOffset *= -1;
         }
 
         const currentAngle = player.aimAngle + swingOffset;
 
+        // New Orbit Logic for Hitbox Origin
+        // Matches Rendering: Center -> Rotate(Aim) -> Translate(Orbit) -> Hand
+        const orbitRadius = 12;
+        const handX = pCenterX + Math.cos(player.aimAngle) * orbitRadius;
+        const handY = pCenterY + 2 + Math.sin(player.aimAngle) * orbitRadius; // +2 vertical offset matches rendering
+
         // --- EXECUTIONER AXE REAL-TIME SWING LOGIC ---
         if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
-             const weaponRange = 60; // Distance of the hitbox center from player (matches visual handle length)
-             const axeX = pCenterX + Math.cos(currentAngle) * weaponRange;
-             const axeY = pCenterY + Math.sin(currentAngle) * weaponRange;
+             const weaponReach = 48; // Reduced from 70
+             const axeX = handX + Math.cos(currentAngle) * weaponReach;
+             const axeY = handY + Math.sin(currentAngle) * weaponReach;
 
              if (state.time % 2 === 0) {
                  createParticles(state, axeX, axeY, 1, '#334155');
@@ -229,21 +239,16 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         }
         // --- BLOOD BLADE & CURSED BLADE PRECISE HITBOX ---
         else if (player.currentWeapon === WeaponType.BLOOD_BLADE || player.currentWeapon === WeaponType.CURSED_BLADE) {
-             // Define Origin Offset (matches rendering translate(facing * 10, 2))
-             const facing = Math.abs(player.aimAngle) > Math.PI / 2 ? -1 : 1;
-             const originX = pCenterX + facing * 10;
-             const originY = pCenterY; // Approx pivot height
-
-             // Define sampling points along the blade
              const range = weapon.range;
              const numPoints = 5;
              const points: {x: number, y: number}[] = [];
              
+             // Points radiate from the Hand Position
              for(let i=1; i<=numPoints; i++) {
                  const d = (range / numPoints) * i;
                  points.push({
-                     x: originX + Math.cos(currentAngle) * d,
-                     y: originY + Math.sin(currentAngle) * d
+                     x: handX + Math.cos(currentAngle) * d,
+                     y: handY + Math.sin(currentAngle) * d
                  });
              }
 
@@ -251,16 +256,14 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
              state.enemies.forEach(e => {
                  if (player.swingHitList.includes(e.id)) return;
 
-                 // Enemy hitbox is roughly centered circle
                  const ex = e.x + e.width/2;
                  const ey = e.y + e.height/2;
-                 const eRadius = Math.max(e.width, e.height) / 2; // slightly generous hit circle
+                 const eRadius = Math.max(e.width, e.height) / 2;
 
                  let hit = false;
-                 // Check if any point on blade is inside enemy circle
                  for(const p of points) {
                      const dist = Math.sqrt((ex - p.x)**2 + (ey - p.y)**2);
-                     if (dist < eRadius + 5) { // +5 buffer for blade thickness
+                     if (dist < eRadius + 5) {
                          hit = true;
                          break;
                      }

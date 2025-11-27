@@ -26,7 +26,7 @@ export const handleAttack = (state: GameState) => {
 
     if (player.currentWeapon === WeaponType.SHADOW_BOW) {
         const orbitRadius = 18;
-        const chestHeightOffset = 27; 
+        const chestHeightOffset = 25; 
         
         const pCenterX = player.x + player.width/2;
         const pCenterY = player.y + player.height;

@@ -122,17 +122,35 @@ const drawCharacter = (
             const weapon = C.WEAPONS[p.currentWeapon];
             ctx.save();
             
+            // Unified Weapon Orbit Logic
+            const orbitRadius = 12; 
+            const shoulderOffset = 2; // Vertical adjustment from center
+            
+            ctx.translate(0, shoulderOffset); 
+            
+            // Standard Melee & Bow Rotation
             if (p.currentWeapon === WeaponType.SHADOW_BOW) {
-                const chestHeight = 0; 
-                ctx.translate(0, chestHeight);
-                ctx.rotate(p.aimAngle);
-                const orbitRadius = 18;
-                ctx.translate(orbitRadius, 0);
+                 // Slight adjustment for Bow specific rendering (chest height, orbit)
+                 // Keeping bow slightly distinct or unified?
+                 // Original bow code used orbitRadius 18. Let's adapt to unified style but keep offset.
+                 ctx.rotate(p.aimAngle);
+                 ctx.translate(18, 0); 
+            } else if (p.isSpinning) {
+                 // Special Spin Case (Executioner Swirl)
+                 ctx.rotate(time * 0.5);
+                 // No flip needed for spin
+            } else {
+                 // Standard Melee Orbit
+                 ctx.rotate(p.aimAngle);
+                 ctx.translate(orbitRadius, 0);
+            }
 
-                if (Math.abs(p.aimAngle) > Math.PI / 2) {
-                    ctx.scale(1, -1);
-                }
+            // Flip Y if facing left to keep weapon "upright" relative to swing
+            if (!p.isSpinning && Math.abs(p.aimAngle) > Math.PI / 2) {
+                ctx.scale(1, -1);
+            }
 
+            if (p.currentWeapon === WeaponType.SHADOW_BOW) {
                 // --- Pixel Art Shadow Bow Rendering ---
                 const s = 2; // scale
                 const cDark = '#2e1065'; 
@@ -182,124 +200,105 @@ const drawCharacter = (
                 ctx.fillStyle = cGlow; ctx.fillRect(-3.5*s, 6.5*s, 1*s, 1*s);
                 ctx.fillStyle = cDark; ctx.fillRect(-4*s, 7*s, 1*s, 2*s);
                 ctx.fillStyle = cDark; ctx.fillRect(-4*s, 8*s, 2*s, 1*s);
+
             } else if (p.currentWeapon === WeaponType.EXECUTIONER_AXE) {
                 // --- EXECUTIONER AXE RENDER ---
-                if (p.isSpinning) {
-                    ctx.translate(0, 0); // Moved down by 5px
-                    ctx.rotate(time * 0.5); 
-                } else {
-                    // Standard visual stance
-                    ctx.translate(facing * 3, 7);
-                    
-                    let baseRot = p.aimAngle || 0;
-                    let swingOffset = 0; let progress = 0;
-                    if (p.isAttacking) {
-                        progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
-                        swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-                        
-                        // FIX: Invert swing offset when facing left to ensure top-to-bottom swing
-                        if (Math.abs(baseRot) > Math.PI / 2) {
-                            swingOffset *= -1;
-                        }
-                    } else {
-                        swingOffset = Math.sin(time * 0.1) * 0.1;
-                    }
-                    ctx.rotate(baseRot + swingOffset);
-                    if (Math.abs(baseRot) > Math.PI / 2) ctx.scale(1, -1);
+                // Apply Swing Rotation locally (Scale handled above)
+                let swingOffset = 0; 
+                if (p.isAttacking && !p.isSpinning) {
+                    const progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
+                    swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
+                    // NOTE: Do not invert swingOffset here, scale(1, -1) handles the flip for left-facing
+                } else if (!p.isSpinning) {
+                    swingOffset = Math.sin(time * 0.1) * 0.1; // Idle breath
                 }
+                
+                if (!p.isSpinning) ctx.rotate(swingOffset);
 
                 // --- AXE PIXEL ART ---
                 const s = 2.0;
                 
-                // Handle (Dark Wood/Leather) - Extended for reach
-                ctx.fillStyle = '#451a03'; ctx.fillRect(0, -1*s, 40*s, 2*s); // Start at hand (0), go out 80px
+                // Handle (Dark Wood/Leather) - Draw from 0
+                ctx.fillStyle = '#451a03'; ctx.fillRect(0, -1*s, 32*s, 2*s); 
                 
                 // Grip Wraps
                 ctx.fillStyle = '#78350f';
                 ctx.fillRect(4*s, -1.2*s, 2*s, 2.4*s);
                 ctx.fillRect(12*s, -1.2*s, 2*s, 2.4*s);
                 
-                const headX = 30*s; // 60px out
+                const headX = 22*s; // 44px out (Was 30s / 60px)
 
                 // Axe Head Connector (Dark Steel)
                 ctx.fillStyle = '#1e293b'; // Slate 800
                 ctx.fillRect(headX - 2*s, -3*s, 4*s, 6*s);
                 
                 // Double Headed Blades
-                ctx.fillStyle = '#334155'; // Slate 700 (Blade Base)
+                ctx.fillStyle = '#334155'; // Slate 700
                 
                 // Top Blade
                 ctx.beginPath();
                 ctx.moveTo(headX - 2*s, -3*s);
-                ctx.lineTo(headX - 6*s, -8*s); // Top back
-                ctx.lineTo(headX + 6*s, -10*s); // Top front point
-                ctx.lineTo(headX + 2*s, -3*s); // Connect
+                ctx.lineTo(headX - 6*s, -8*s); 
+                ctx.lineTo(headX + 6*s, -10*s); 
+                ctx.lineTo(headX + 2*s, -3*s); 
                 ctx.fill();
                 
                 // Bottom Blade
                 ctx.beginPath();
                 ctx.moveTo(headX - 2*s, 3*s);
-                ctx.lineTo(headX - 6*s, 8*s); // Bottom back
-                ctx.lineTo(headX + 6*s, 10*s); // Bottom front point
-                ctx.lineTo(headX + 2*s, 3*s); // Connect
+                ctx.lineTo(headX - 6*s, 8*s); 
+                ctx.lineTo(headX + 6*s, 10*s); 
+                ctx.lineTo(headX + 2*s, 3*s); 
                 ctx.fill();
 
-                // Blade Edge (Lighter Steel)
+                // Blade Edge
                 ctx.fillStyle = '#94a3b8'; // Slate 400
-                // Top Edge
                 ctx.beginPath(); ctx.moveTo(headX - 6*s, -8*s); ctx.lineTo(headX + 6*s, -10*s); ctx.lineTo(headX + 4*s, -6*s); ctx.fill();
-                // Bottom Edge
                 ctx.beginPath(); ctx.moveTo(headX - 6*s, 8*s); ctx.lineTo(headX + 6*s, 10*s); ctx.lineTo(headX + 4*s, 6*s); ctx.fill();
 
                 // Blood Stains
-                ctx.fillStyle = '#7f1d1d'; // Red 900
+                ctx.fillStyle = '#7f1d1d'; 
                 ctx.fillRect(headX + 2*s, -8*s, 2*s, 2*s);
                 ctx.fillRect(headX + 4*s, 8*s, 1*s, 2*s);
                 ctx.fillRect(headX, -4*s, 3*s, 1*s);
 
             } else {
                 // --- STANDARD MELEE WEAPONS ---
-                ctx.translate(facing * 10, 2);
-                let baseRot = p.aimAngle || 0;
-                let swingOffset = 0; let progress = 0;
+                let swingOffset = 0; 
                 
                 if (p.isAttacking) {
-                     progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
+                     const progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
                      swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-                     
-                     // FIX: Invert swing offset when facing left to ensure top-to-bottom swing
-                     if (Math.abs(baseRot) > Math.PI / 2) {
-                        swingOffset *= -1;
-                     }
+                     // NOTE: Scale flip handles direction
                 } else {
                      swingOffset = Math.sin(time * 0.1) * 0.1;
                 }
     
-                ctx.rotate(baseRot + swingOffset);
-                if (Math.abs(baseRot) > Math.PI / 2) ctx.scale(1, -1);
+                ctx.rotate(swingOffset);
                 
                 if (p.currentWeapon === WeaponType.BLOOD_BLADE) {
                     const s = 2.5;
-                    ctx.fillStyle = '#3f2e22'; ctx.fillRect(-4 * s, -1 * s, 5 * s, 2 * s);
-                    ctx.fillStyle = '#565963'; ctx.fillRect(-5 * s, -1.5 * s, 2 * s, 3 * s);
-                    ctx.fillStyle = '#8f939d'; ctx.fillRect(1 * s, -4 * s, 2 * s, 8 * s);
-                    ctx.fillStyle = '#565963'; ctx.fillRect(1.5 * s, -1 * s, 1 * s, 2 * s);
-                    ctx.fillStyle = '#c7cfdd'; ctx.fillRect(3 * s, -2 * s, 14 * s, 4 * s);
-                    ctx.fillStyle = '#8f939d'; ctx.fillRect(3 * s, -2 * s, 14 * s, 1 * s); ctx.fillRect(3 * s, 1 * s, 14 * s, 1 * s);
-                    ctx.fillStyle = '#565963'; ctx.fillRect(3 * s, -0.5 * s, 13 * s, 1 * s);
-                    ctx.fillStyle = '#c7cfdd'; ctx.beginPath(); ctx.moveTo(17 * s, -2 * s); ctx.lineTo(20 * s, 0); ctx.lineTo(17 * s, 2 * s); ctx.fill();
+                    // Adjusted coordinates to start Hilt at 0
+                    ctx.fillStyle = '#3f2e22'; ctx.fillRect(0, -1 * s, 5 * s, 2 * s); // Hilt
+                    ctx.fillStyle = '#565963'; ctx.fillRect(-1 * s, -1.5 * s, 2 * s, 3 * s); // Guard Back
+                    ctx.fillStyle = '#8f939d'; ctx.fillRect(5 * s, -4 * s, 2 * s, 8 * s); // Guard Cross
+                    ctx.fillStyle = '#c7cfdd'; ctx.fillRect(7 * s, -2 * s, 14 * s, 4 * s); // Blade
+                    ctx.fillStyle = '#8f939d'; ctx.fillRect(7 * s, -2 * s, 14 * s, 1 * s); ctx.fillRect(7 * s, 1 * s, 14 * s, 1 * s);
+                    ctx.fillStyle = '#565963'; ctx.fillRect(7 * s, -0.5 * s, 13 * s, 1 * s);
+                    ctx.fillStyle = '#c7cfdd'; ctx.beginPath(); ctx.moveTo(21 * s, -2 * s); ctx.lineTo(24 * s, 0); ctx.lineTo(21 * s, 2 * s); ctx.fill();
                 } else if (p.currentWeapon === WeaponType.CURSED_BLADE) {
-                    // CURSED BLADE (Katana) - Pixel Art Construction
+                    // CURSED BLADE (Katana)
                     const s = 2.0;
-                    ctx.fillStyle = '#2e1065'; ctx.fillRect(-6*s, -1.5*s, 6*s, 3*s);
-                    ctx.fillStyle = '#4c1d95'; ctx.fillRect(-5*s, -0.5*s, 1*s, 1*s); ctx.fillRect(-3*s, -0.5*s, 1*s, 1*s);
-                    ctx.fillStyle = '#b45309'; ctx.fillRect(0, -2.5*s, 2*s, 5*s);
-                    ctx.fillStyle = '#78350f'; ctx.fillRect(0.5*s, -1.5*s, 1*s, 3*s);
-                    ctx.fillStyle = '#334155'; ctx.fillRect(2*s, -1.5*s, 24*s, 3*s); 
-                    ctx.fillStyle = '#a855f7'; ctx.fillRect(2*s, 0.5*s, 22*s, 1*s);
-                    ctx.beginPath(); ctx.moveTo(26*s, -1.5*s); ctx.lineTo(30*s, 0); ctx.lineTo(24*s, 1.5*s);
+                    // Hilt starts at 0
+                    ctx.fillStyle = '#2e1065'; ctx.fillRect(0, -1.5*s, 6*s, 3*s);
+                    ctx.fillStyle = '#4c1d95'; ctx.fillRect(1*s, -0.5*s, 1*s, 1*s); ctx.fillRect(3*s, -0.5*s, 1*s, 1*s);
+                    ctx.fillStyle = '#b45309'; ctx.fillRect(6*s, -2.5*s, 2*s, 5*s); // Tsuba
+                    ctx.fillStyle = '#78350f'; ctx.fillRect(6.5*s, -1.5*s, 1*s, 3*s);
+                    ctx.fillStyle = '#334155'; ctx.fillRect(8*s, -1.5*s, 24*s, 3*s); // Blade
+                    ctx.fillStyle = '#a855f7'; ctx.fillRect(8*s, 0.5*s, 22*s, 1*s); // Edge Glow
+                    ctx.beginPath(); ctx.moveTo(32*s, -1.5*s); ctx.lineTo(36*s, 0); ctx.lineTo(30*s, 1.5*s);
                     ctx.fillStyle = '#334155'; ctx.fill();
-                    ctx.fillStyle = '#d8b4fe'; ctx.fillRect(10*s, -1*s, 1*s, 1*s); ctx.fillRect(20*s, 0, 1*s, 1*s);
+                    ctx.fillStyle = '#d8b4fe'; ctx.fillRect(16*s, -1*s, 1*s, 1*s); ctx.fillRect(26*s, 0, 1*s, 1*s);
                 }
             }
             ctx.restore();
