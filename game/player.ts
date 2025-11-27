@@ -1,9 +1,8 @@
-import { GameState, ItemType, WeaponType, EntityType } from '../types';
+import { GameState, ItemType, WeaponType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
 import { resolveMapCollision, rectIntersect } from './physics';
-import { createParticles } from './spawners';
-import { spawnDamageNumber } from './spawners';
+import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
 
 export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: number, y: number}) => {
     const { player, dungeon } = state;
@@ -238,7 +237,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
              // Define sampling points along the blade
              const range = weapon.range;
              const numPoints = 5;
-             const points = [];
+             const points: {x: number, y: number}[] = [];
              
              for(let i=1; i<=numPoints; i++) {
                  const d = (range / numPoints) * i;

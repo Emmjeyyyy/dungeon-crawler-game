@@ -1,4 +1,4 @@
-import { GameState, EnemyType, EntityType } from '../types';
+import { GameState, EnemyType } from '../types';
 import * as C from '../constants';
 import { resolveMapCollision } from './physics';
 import { dealDamage, damagePlayer } from './eventHandlers';
