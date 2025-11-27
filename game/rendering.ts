@@ -1,3 +1,4 @@
+
 import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType } from '../types';
 import * as C from '../constants';
 
@@ -30,7 +31,6 @@ const drawCharacter = (
     }
 
     const isMoving = Math.abs(entity.vx) > 0.5 || Math.abs(entity.vy) > 0.5;
-    const facing = entity.facingX || 1;
     const bob = isMoving ? Math.sin(time * 0.5) * 2 : Math.sin(time * 0.1) * 1;
     
     ctx.save();
