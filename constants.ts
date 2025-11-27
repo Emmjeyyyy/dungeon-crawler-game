@@ -36,7 +36,7 @@ export const WEAPONS = {
     damageMult: 1.0,
     speedMult: 1.0,
     range: 52, // Matched to visual sword length
-    arc: Math.PI / 2.2,
+    arc: (Math.PI * 2) / 3, // Standardized 120-degree arc
     heavyMult: 2.0,
     color: '#ef4444', // Red 500
     cooldown: 18,
@@ -55,7 +55,7 @@ export const WEAPONS = {
     damageMult: 0.5,
     speedMult: 1.8,
     range: 45,
-    arc: Math.PI / 2,
+    arc: (Math.PI * 2) / 3, // Standardized 120-degree arc
     heavyMult: 1.5,
     color: '#f472b6', // Pink 400
     cooldown: 8,
@@ -76,7 +76,7 @@ export const WEAPONS = {
     damageMult: 2.5,
     speedMult: 0.5,
     range: 95,
-    arc: Math.PI,
+    arc: (Math.PI * 2) / 3, // Standardized 120-degree arc
     heavyMult: 3.5,
     color: '#7f1d1d', // Red 900
     cooldown: 40,

@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState, useCallback } from 'react';
 import { useGameLoop } from './hooks/useGameLoop';
 import GameCanvas from './components/GameCanvas';
