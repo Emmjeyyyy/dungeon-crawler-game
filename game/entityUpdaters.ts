@@ -1,5 +1,4 @@
-import { GameState, Echo, Enemy, ItemType } from '../types';
-import * as C from '../constants';
+import { GameState, Enemy, ItemType } from '../types';
 import { resolveMapCollision, checkWall, rectIntersect } from './physics';
 import { dealDamage } from './eventHandlers';
 import { createParticles } from './spawners';

@@ -12,7 +12,6 @@ export const handleAttack = (state: GameState) => {
     player.maxAttackCooldown = player.attackCooldown;
     player.isAttacking = true;
 
-    // FIX: Replaced C.ItemType with ItemType, imported from ../types.
     const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
     const dmgMult = dmgBuff ? 1.5 : 1.0;
     const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
@@ -20,7 +19,6 @@ export const handleAttack = (state: GameState) => {
     if (player.currentWeapon === WeaponType.SHADOW_BOW) {
         state.projectiles.push({
             id: `proj-${Math.random()}`,
-            // FIX: Replaced C.EntityType with EntityType, imported from ../types.
             type: EntityType.PROJECTILE,
             ownerId: player.id,
             x: player.x + player.width/2,
@@ -96,9 +94,7 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         if (player.shadowStack.length === 0) return;
         player.shadowStack.forEach((enemyType, i) => {
             let tier = 1;
-            // FIX: Replaced C.EnemyType with EnemyType, imported from ../types.
             if (enemyType === EnemyType.ELITE) tier = 2;
-            // FIX: Replaced C.EnemyType with EnemyType, imported from ../types.
             if (enemyType === EnemyType.MYSTIC) tier = 3;
             const angle = (Math.PI * 2 / player.shadowStack.length) * i;
             const dist = 40 + Math.random() * 20;
@@ -111,8 +107,7 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         player.shadowStack = [];
     } else if (abilityType === AbilityType.BLOOD_WAVE) {
         state.projectiles.push({
-            id: `proj-${Math.random()}`, // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-            type: EntityType.PROJECTILE, ownerId: player.id,
+            id: `proj-${Math.random()}`, type: EntityType.PROJECTILE, ownerId: player.id,
             x: player.x + player.width/2, y: player.y + player.height/2,
             width: 30, height: 30,
             vx: Math.cos(player.aimAngle) * 12, vy: Math.sin(player.aimAngle) * 12,
@@ -149,8 +144,7 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         for(let i=0; i<count; i++) {
             const angle = startAngle + (spread / (count-1)) * i;
             state.projectiles.push({
-                id: `proj-${Math.random()}`, // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-                type: EntityType.PROJECTILE, ownerId: player.id,
+                id: `proj-${Math.random()}`, type: EntityType.PROJECTILE, ownerId: player.id,
                 x: player.x + player.width/2, y: player.y + player.height/2,
                 width: 8, height: 8,
                 vx: Math.cos(angle) * 18, vy: Math.sin(angle) * 18,
@@ -182,7 +176,6 @@ export const dealDamage = (state: GameState, enemy: Enemy, amount: number, isCri
 
 export const nextFloor = (state: GameState) => {
     state.dungeon.floor++;
-    // FIX: Replaced require() with an ES module import at the top of the file.
     const newDungeon = createDungeon(state.dungeon.floor);
     state.dungeon = newDungeon;
     const startRoom = newDungeon.rooms[0];

@@ -23,11 +23,9 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
     if (player.interactionCooldown > 0) player.interactionCooldown--;
     if (inputs.has('KeyE') && state.interactionItem && player.interactionCooldown <= 0) {
-        // FIX: Replaced C.ItemType with ItemType, imported from ../types.
         if (state.interactionItem.itemType === ItemType.PORTAL) {
              nextFloor(state);
         }
-        // FIX: Replaced C.ItemType with ItemType, imported from ../types.
         else if (state.interactionItem.itemType === ItemType.WEAPON_DROP) {
             const newWeapon = state.interactionItem.payload;
             player.currentWeapon = newWeapon;
@@ -90,7 +88,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         const len = Math.sqrt(dx*dx + dy*dy);
         dx /= len; dy /= len;
       }
-      // FIX: Replaced C.ItemType with ItemType, imported from ../types.
       const speed = player.stats.speed * (player.activeBuffs.some(b => b.type === ItemType.BUFF_SPEED) ? 1.5 : 1.0);
       player.vx += dx * speed * 0.2;
       player.vy += dy * speed * 0.2;

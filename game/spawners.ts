@@ -8,7 +8,6 @@ export const createParticles = (state: GameState, x: number, y: number, count: n
         const speed = 4 + Math.random() * 4;
         state.particles.push({
             id: `part-${Math.random()}`,
-            // FIX: Replaced C.EntityType with EntityType, imported from ../types.
             type: EntityType.PARTICLE,
             x, y,
             width: 4, height: 4,
@@ -42,7 +41,6 @@ export const spawnDamageNumber = (state: GameState, x: number, y: number, value:
 export const spawnEcho = (state: GameState, x: number, y: number, tier: number) => {
     state.echoes.push({
         id: `echo-${Math.random()}`,
-        // FIX: Replaced C.EntityType with EntityType, imported from ../types.
         type: EntityType.ECHO,
         x, y,
         width: 24, height: 24,

@@ -1,13 +1,12 @@
-import { GameState, Entity, WeaponType, EnemyType, ItemType, TileType, Enemy, EntityType } from '../types';
+import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType } from '../types';
 import * as C from '../constants';
 
 const drawCharacter = (
       ctx: CanvasRenderingContext2D, 
-      entity: any, 
-      time: number, 
-      isEcho: boolean = false
+      entity: Player | Enemy | Echo,
+      time: number
   ) => {
-    // FIX: Replaced C.EntityType with EntityType, imported from ../types.
+    // FIX: Guard Player-specific property `isSlashDashing`
     if (entity.type === EntityType.PLAYER && entity.isSlashDashing) {
          ctx.save();
          ctx.translate(entity.x + entity.width/2 - entity.vx * 2, entity.y + entity.height - entity.vy * 2);
@@ -25,71 +24,78 @@ const drawCharacter = (
     
     ctx.save();
     ctx.translate(entity.x + entity.width/2, entity.y + entity.height);
-    // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-    if (entity.type === EntityType.ENEMY && entity.enemyType === EnemyType.BOSS) ctx.scale(2, 2);
-    else ctx.scale(entity.scale || 1, entity.scale || 1);
+
+    // FIX: Guard Enemy-specific property `enemyType` and Enemy/Echo property `scale`
+    if (entity.type === EntityType.ENEMY && entity.enemyType === EnemyType.BOSS) {
+      ctx.scale(2, 2);
+    } else if (entity.type === EntityType.ENEMY || entity.type === EntityType.ECHO) {
+      ctx.scale(entity.scale || 1, entity.scale || 1);
+    }
 
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(0, 0, 10, 4, 0, 0, Math.PI*2); ctx.fill();
 
-    if (isEcho) {
+    // FIX: Guard Echo-specific property `tier`
+    if (entity.type === EntityType.ECHO) {
         ctx.globalAlpha = 0.5;
         if (entity.tier === 3) ctx.globalAlpha = 0.5 + Math.sin(time * 0.2) * 0.2;
     }
 
-    // FIX: Replaced C.EntityType with EntityType, imported from ../types.
     ctx.fillStyle = entity.type === EntityType.ENEMY ? '#271a1a' : '#0f172a';
     const legOffset = isMoving ? Math.sin(time * 0.5) * 6 : 0;
-    if (entity.enemyType !== EnemyType.MYSTIC) {
-        ctx.beginPath(); ctx.moveTo(-4, -8); ctx.lineTo(-6 + legOffset, 0); ctx.lineTo(-2 + legOffset, 0); ctx.lineTo(0, -8); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(4, -8); ctx.lineTo(6 - legOffset, 0); ctx.lineTo(2 - legOffset, 0); ctx.lineTo(0, -8); ctx.fill();
-    } else {
+    // FIX: Guard Enemy-specific property `enemyType`
+    if (entity.type === EntityType.ENEMY && entity.enemyType === EnemyType.MYSTIC) {
         ctx.fillStyle = entity.color;
         ctx.beginPath(); ctx.moveTo(-8, -10 + bob); ctx.lineTo(0, 5 + bob); ctx.lineTo(8, -10 + bob); ctx.fill();
+    } else {
+        ctx.beginPath(); ctx.moveTo(-4, -8); ctx.lineTo(-6 + legOffset, 0); ctx.lineTo(-2 + legOffset, 0); ctx.lineTo(0, -8); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(4, -8); ctx.lineTo(6 - legOffset, 0); ctx.lineTo(2 - legOffset, 0); ctx.lineTo(0, -8); ctx.fill();
     }
 
     ctx.translate(0, -12 + bob); 
-    ctx.fillStyle = entity.hitFlashTimer > 0 ? '#ffffff' : entity.color;
-
-    if (entity.enemyType === EnemyType.STANDARD || (isEcho && entity.tier === 1)) {
+    // FIX: Guard Player/Enemy-specific property `hitFlashTimer`
+    ctx.fillStyle = (entity.type === EntityType.PLAYER || entity.type === EntityType.ENEMY) && entity.hitFlashTimer > 0 ? '#ffffff' : entity.color;
+    
+    // FIX: Refactor body drawing logic with proper type guards for `enemyType` and `tier`
+    if ((entity.type === EntityType.ENEMY && entity.enemyType === EnemyType.STANDARD) || (entity.type === EntityType.ECHO && entity.tier === 1)) {
         ctx.fillRect(-6, -10, 14, 14);
-    } else if (entity.enemyType === EnemyType.ELITE || (isEcho && entity.tier === 2)) {
+    } else if ((entity.type === EntityType.ENEMY && entity.enemyType === EnemyType.ELITE) || (entity.type === EntityType.ECHO && entity.tier === 2)) {
         ctx.fillRect(-10, -18, 20, 22);
         ctx.fillStyle = '#facc15'; ctx.fillRect(-8, -16, 16, 8); 
-    } else if (entity.enemyType === EnemyType.MYSTIC || (isEcho && entity.tier === 3)) {
+    } else if ((entity.type === EntityType.ENEMY && entity.enemyType === EnemyType.MYSTIC) || (entity.type === EntityType.ECHO && entity.tier === 3)) {
         ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.lineTo(0, -20); ctx.fill();
-    } else {
+    } else if (entity.type === EntityType.PLAYER) {
         ctx.fillRect(-6, -14, 12, 16);
-        // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-        if (entity.type === EntityType.PLAYER) {
-            ctx.fillStyle = '#334155'; ctx.fillRect(-6, -2, 12, 2);
-            ctx.fillStyle = '#dc2626'; ctx.fillRect(-2, -12, 4, 12);
-        }
+        ctx.fillStyle = '#334155'; ctx.fillRect(-6, -2, 12, 2);
+        ctx.fillStyle = '#dc2626'; ctx.fillRect(-2, -12, 4, 12);
     }
 
     ctx.translate(0, -14);
-    // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-    ctx.fillStyle = entity.hitFlashTimer > 0 ? '#fff' : (entity.type === EntityType.PLAYER ? '#f1f5f9' : entity.color);
-    if (entity.enemyType === EnemyType.ELITE) {
-        ctx.fillRect(-7, -10, 14, 12);
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.moveTo(-7, -8); ctx.lineTo(-12, -14); ctx.lineTo(-6, -10);
-        ctx.moveTo(7, -8); ctx.lineTo(12, -14); ctx.lineTo(6, -10); ctx.fill();
-    } else if (entity.enemyType === EnemyType.MYSTIC) {
-        ctx.beginPath(); ctx.arc(0, -5, 6, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#ffff00'; ctx.fillRect(-2, -6, 1, 1); ctx.fillRect(2, -6, 1, 1);
-    } else {
-        ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
-        // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-        if (entity.type === EntityType.PLAYER) {
-            ctx.fillStyle = '#0f172a';
-            ctx.beginPath(); ctx.arc(0, -5, 5.5, Math.PI, Math.PI * 2); ctx.fill();
+    // FIX: Guard Player/Enemy-specific `hitFlashTimer`
+    ctx.fillStyle = (entity.type === EntityType.PLAYER || entity.type === EntityType.ENEMY) && entity.hitFlashTimer > 0 ? '#fff' : (entity.type === EntityType.PLAYER ? '#f1f5f9' : entity.color);
+
+    // FIX: Guard `enemyType` and use type guards for different entity types
+    if (entity.type === EntityType.ENEMY) {
+        if (entity.enemyType === EnemyType.ELITE) {
+            ctx.fillRect(-7, -10, 14, 12);
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.moveTo(-7, -8); ctx.lineTo(-12, -14); ctx.lineTo(-6, -10);
+            ctx.moveTo(7, -8); ctx.lineTo(12, -14); ctx.lineTo(6, -10); ctx.fill();
+        } else if (entity.enemyType === EnemyType.MYSTIC) {
+            ctx.beginPath(); ctx.arc(0, -5, 6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffff00'; ctx.fillRect(-2, -6, 1, 1); ctx.fillRect(2, -6, 1, 1);
+        } else {
+            ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
         }
+    } else if (entity.type === EntityType.PLAYER) {
+        ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath(); ctx.arc(0, -5, 5.5, Math.PI, Math.PI * 2); ctx.fill();
     }
 
-    // FIX: Replaced C.EntityType with EntityType, imported from ../types.
+    // FIX: Wrap all Player-specific rendering logic in a type guard. This fixes all remaining errors.
     if (entity.type === EntityType.PLAYER && !entity.isDead && !entity.isSlashDashing) {
-        const weapon = C.WEAPONS[entity.currentWeapon || WeaponType.BLOOD_BLADE];
+        const weapon = C.WEAPONS[entity.currentWeapon];
         ctx.save();
         ctx.translate(facing * 10, 2);
         let baseRot = entity.aimAngle || 0;
@@ -103,35 +109,26 @@ const drawCharacter = (
              swingOffset = Math.sin(time * 0.1) * 0.1;
         }
 
-        // SWOOSH EFFECT - Replaced with multi-layer stroke system
+        // SWOOSH EFFECT
         if (entity.isAttacking && entity.currentWeapon !== WeaponType.SHADOW_BOW && progress > 0.05 && progress < 0.95) {
             ctx.save();
-            ctx.rotate(baseRot); // Rotate to match aim angle
-            
+            ctx.rotate(baseRot);
+            ctx.globalAlpha = Math.sin(progress * Math.PI);
+            ctx.lineCap = 'round';
             const range = weapon.range || 50;
             const arcSize = weapon.arc || Math.PI;
-            
-            // Set the base alpha for the whole effect, fading in and out with the swing
-            ctx.globalAlpha = Math.sin(progress * Math.PI);
-            
-            // --- New Multi-Layer Stroke Logic ---
-            ctx.lineCap = 'round'; // This is the key to getting smooth, tapered ends
-            
-            // 1. Outer Glow Layer
+
             const glowWidth = 16;
             ctx.lineWidth = glowWidth;
             ctx.strokeStyle = weapon.color;
             ctx.shadowBlur = 15;
             ctx.shadowColor = weapon.color;
             ctx.beginPath();
-            // The radius is offset by half the line width to align the outer edge with `range`
             ctx.arc(0, 0, range - glowWidth / 2, -arcSize / 2, arcSize / 2);
             ctx.stroke();
             
-            // Reset shadow for subsequent layers
             ctx.shadowBlur = 0;
             
-            // 2. Main Color Layer
             const mainWidth = 10;
             ctx.lineWidth = mainWidth;
             ctx.strokeStyle = weapon.color;
@@ -139,7 +136,6 @@ const drawCharacter = (
             ctx.arc(0, 0, range - mainWidth / 2, -arcSize / 2, arcSize / 2);
             ctx.stroke();
             
-            // 3. White Hot Core Layer
             const coreWidth = 4;
             ctx.lineWidth = coreWidth;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
@@ -236,10 +232,9 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
     });
 
     const allEntities = [...state.enemies, ...state.echoes, state.player].sort((a, b) => (a.y + a.height) - (b.y + b.height));
-    // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-    allEntities.forEach(e => drawCharacter(ctx, e, state.time, e.type === EntityType.ECHO));
-    // FIX: Replaced C.EntityType with EntityType, imported from ../types.
-    allEntities.filter(e => e.type === EntityType.ENEMY).forEach((e: any) => {
+    // FIX: Remove redundant `isEcho` parameter from drawCharacter call
+    allEntities.forEach(e => drawCharacter(ctx, e, state.time));
+    allEntities.filter(e => e.type === EntityType.ENEMY).forEach((e: Enemy) => {
         const hpPct = e.hp / e.maxHp;
         if (hpPct < 1) {
            ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x, e.y - 12, e.width, 4);

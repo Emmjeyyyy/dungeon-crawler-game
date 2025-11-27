@@ -1,4 +1,4 @@
-import { GameState, Enemy, EnemyType, EntityType } from '../types';
+import { GameState, EnemyType, EntityType } from '../types';
 import * as C from '../constants';
 import { resolveMapCollision } from './physics';
 import { dealDamage } from './eventHandlers';
@@ -18,7 +18,6 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
         
         if (dist < e.agroRange) {
             const angle = Math.atan2(pcy - ecy, pcx - ecx);
-            // FIX: Replaced C.EnemyType with EnemyType, imported from ../types.
             const speed = e.enemyType === EnemyType.ELITE ? 1.2 : 2.0;
             e.vx += Math.cos(angle) * speed * 0.1;
             e.vy += Math.sin(angle) * speed * 0.1;
@@ -56,7 +55,6 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
                 for(let i=0; i<3 * daggerStack; i++) {
                      state.projectiles.push({
                         id: `proj-${Math.random()}`,
-                        // FIX: Replaced C.EntityType with EntityType, imported from ../types.
                         type: EntityType.PROJECTILE,
                         ownerId: state.player.id,
                         x: e.x, y: e.y,

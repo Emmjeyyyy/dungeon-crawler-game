@@ -147,7 +147,6 @@ const activateRoom = (state: GameState, room: Room) => {
         const ey = cy + (Math.random() - 0.5) * (room.height * C.TILE_SIZE * 0.6);
         
         const roll = Math.random();
-        // FIX: Replaced C.EnemyType with EnemyType, imported from ../types.
         let type = EnemyType.STANDARD;
         let scale = 1;
         let hp = 30 + (state.dungeon.floor * 5);
@@ -155,7 +154,6 @@ const activateRoom = (state: GameState, room: Room) => {
         let size = 18;
 
         if (state.dungeon.floor > 2 && roll > 0.8) {
-            // FIX: Replaced C.EnemyType with EnemyType, imported from ../types.
             type = EnemyType.ELITE;
             scale = 1.5;
             hp *= 2;
@@ -167,7 +165,6 @@ const activateRoom = (state: GameState, room: Room) => {
 
         state.enemies.push({
             id: `enemy-${Math.random()}`,
-            // FIX: Replaced C.EntityType with EntityType, imported from ../types.
             type: EntityType.ENEMY,
             enemyType: type,
             x: ex, y: ey,
@@ -181,7 +178,6 @@ const activateRoom = (state: GameState, room: Room) => {
             attackCooldown: 0,
             maxAttackCooldown: 60,
             targetId: null,
-            // FIX: Replaced C.EnemyType with EnemyType, imported from ../types.
             xpValue: 10 * (type === EnemyType.ELITE ? 3 : 1),
             agroRange: 1000, 
             hitFlashTimer: 0,
@@ -206,7 +202,6 @@ const clearRoom = (state: GameState, room: Room) => {
     if (room.id === state.dungeon.portalRoomId) {
         state.items.push({
             id: 'portal',
-            // FIX: Replaced C.EntityType with EntityType, imported from ../types.
             type: EntityType.ITEM,
             itemType: ItemType.PORTAL,
             x: cx - 20, y: cy - 20,
@@ -243,7 +238,6 @@ const clearRoom = (state: GameState, room: Room) => {
 
     state.items.push({
         id: `item-${Math.random()}`,
-        // FIX: Replaced C.EntityType with EntityType, imported from ../types.
         type: EntityType.ITEM,
         itemType: itemType,
         x: cx, y: cy,

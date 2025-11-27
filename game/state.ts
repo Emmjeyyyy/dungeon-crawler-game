@@ -54,7 +54,6 @@ export const createInitialState = (): GameState => {
 
   const player: Player = {
       id: 'player',
-      // FIX: Replaced C.EntityType with EntityType, imported from ../types.
       type: EntityType.PLAYER,
       x: px, y: py,
       width: C.PLAYER_SIZE.width, height: C.PLAYER_SIZE.height,
