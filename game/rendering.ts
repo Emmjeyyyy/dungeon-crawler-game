@@ -1,4 +1,3 @@
-
 import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType } from '../types';
 import * as C from '../constants';
 
@@ -398,6 +397,31 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
     allEntities.forEach(entity => {
         if (!entity.isDead) {
             drawCharacter(ctx, entity as Player | Enemy | Echo, state.time);
+        }
+    });
+
+    // 5.5 Render Health Bars
+    state.enemies.forEach(e => {
+        if (!e.isDead) {
+            const hpPct = Math.max(0, e.hp / e.maxHp);
+            const barWidth = e.width * 1.5;
+            const barHeight = 4;
+            const barX = e.x + (e.width - barWidth) / 2;
+            
+            // Dynamic Y-offset based on height to ensure it clears the head
+            const barY = e.y - e.height - 10; 
+
+            // Border
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+
+            // Background
+            ctx.fillStyle = '#450a0a';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            // Foreground
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(barX, barY, barWidth * hpPct, barHeight);
         }
     });
 

@@ -1,5 +1,3 @@
-
-
 import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemType } from '../types';
 import * as C from '../constants';
 import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
@@ -26,7 +24,7 @@ export const handleAttack = (state: GameState) => {
         // Updated Orbital Spawn Logic
         // Radius matches the visual offset (18px) + offset from body center (-14px height, lower than before)
         const orbitRadius = 18;
-        const chestHeightOffset = 14; // Up from feet (Lowered by 10px from 24)
+        const chestHeightOffset = 27; // Up from feet (Raised by 5px from 14 to 19)
         
         const pCenterX = player.x + player.width/2;
         const pCenterY = player.y + player.height;
@@ -171,7 +169,7 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
     } else if (abilityType === AbilityType.PIERCING_VOLLEY) {
         // Updated Orbital Spawn Logic for Volley
         const orbitRadius = 18;
-        const chestHeightOffset = 14; // Up from feet (Lowered by 10px from 24)
+        const chestHeightOffset = 19; // Up from feet (Raised by 5px from 14 to 19)
         
         const pCenterX = player.x + player.width/2;
         const pCenterY = player.y + player.height;
