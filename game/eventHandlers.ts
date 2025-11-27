@@ -7,22 +7,32 @@ import { createDungeon } from './dungeon';
 
 export const handleAttack = (state: GameState) => {
     const { player } = state;
+    // Prevent attacking while spinning
+    if (player.isSpinning) return;
+
     const weapon = C.WEAPONS[player.currentWeapon];
     
     const speedMod = player.stats.attackSpeed;
     player.attackCooldown = Math.max(2, weapon.cooldown / speedMod);
     player.maxAttackCooldown = player.attackCooldown;
     player.isAttacking = true;
+    player.swingHitList = []; // Reset hit list for new swing
 
     const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
     const dmgMult = dmgBuff ? 1.5 : 1.0;
     const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
 
     if (player.currentWeapon === WeaponType.SHADOW_BOW) {
-        // Offset logic: Feet Y - 24 (Chest height), Center X + (Facing * 10)
-        const facing = player.facingX || 1;
-        const spawnX = player.x + player.width/2 + (facing * 10);
-        const spawnY = player.y + player.height - 24;
+        // Updated Orbital Spawn Logic
+        // Radius matches the visual offset (18px) + offset from body center (-14px height, lower than before)
+        const orbitRadius = 18;
+        const chestHeightOffset = 14; // Up from feet (Lowered by 10px from 24)
+        
+        const pCenterX = player.x + player.width/2;
+        const pCenterY = player.y + player.height;
+
+        const spawnX = pCenterX + Math.cos(player.aimAngle) * orbitRadius;
+        const spawnY = (pCenterY - chestHeightOffset) + Math.sin(player.aimAngle) * orbitRadius;
 
         state.projectiles.push({
             id: `proj-${Math.random()}`,
@@ -41,6 +51,12 @@ export const handleAttack = (state: GameState) => {
         });
         // Bow Fire Effect
         createParticles(state, spawnX, spawnY, 5, '#d8b4fe', player.aimAngle);
+        return;
+    }
+
+    // --- EXECUTIONER AXE (REAL-TIME HITBOX) ---
+    if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
+        // We only set the state here. Collision is handled in updatePlayer frame-by-frame.
         return;
     }
 
@@ -144,21 +160,24 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         createParticles(state, player.x, player.y, 15, '#7c3aed'); // Purple
         state.camera.shake = 10;
         
-    } else if (abilityType === AbilityType.GROUND_CLEAVE) {
-        createParticles(state, player.x + player.width/2, player.y + player.height/2, 30, '#7f1d1d');
-        state.camera.shake = 15;
-        state.enemies.forEach(e => {
-            const dist = Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2);
-            if (dist < 120) {
-                 dealDamage(state, e, player.stats.damage * 4.0, false);
-                 e.vx = (e.x - player.x) * 0.2;
-                 e.vy = (e.y - player.y) * 0.2;
-            }
-        });
+    } else if (abilityType === AbilityType.EXECUTIONER_SWIRL) {
+        // Activate Spin State
+        player.isSpinning = true;
+        player.spinTimer = 180; // 3 seconds duration
+        player.spinTickTimer = 0;
+        createParticles(state, player.x + player.width/2, player.y + player.height/2, 20, '#7f1d1d');
+        state.camera.shake = 10;
+
     } else if (abilityType === AbilityType.PIERCING_VOLLEY) {
-        const facing = player.facingX || 1;
-        const spawnX = player.x + player.width/2 + (facing * 10);
-        const spawnY = player.y + player.height - 24;
+        // Updated Orbital Spawn Logic for Volley
+        const orbitRadius = 18;
+        const chestHeightOffset = 14; // Up from feet (Lowered by 10px from 24)
+        
+        const pCenterX = player.x + player.width/2;
+        const pCenterY = player.y + player.height;
+
+        const spawnX = pCenterX + Math.cos(player.aimAngle) * orbitRadius;
+        const spawnY = (pCenterY - chestHeightOffset) + Math.sin(player.aimAngle) * orbitRadius;
 
         const count = 5;
         const spread = Math.PI / 4;

@@ -64,6 +64,8 @@ export const createInitialState = (): GameState => {
       level: 1, runes: 0, xp: 0, maxXp: 100,
       facingX: 1, facingY: 1, aimAngle: 0,
       isDashing: false, isSlashDashing: false, isAttacking: false,
+      isSpinning: false, spinTimer: 0, spinTickTimer: 0,
+      swingHitList: [],
       attackCooldown: 0, maxAttackCooldown: 0, heavyAttackCooldown: 0, dashCooldown: 0,
       abilityCooldown: 0, secondaryAbilityCooldown: 0, interactionCooldown: 0,
       invulnTimer: 0, hitFlashTimer: 0, slashDashTimer: 0,
@@ -105,10 +107,12 @@ export const createTestState = (): GameState => {
       level: 1, runes: 9999, xp: 0, maxXp: 100,
       facingX: 1, facingY: 1, aimAngle: 0,
       isDashing: false, isSlashDashing: false, isAttacking: false,
+      isSpinning: false, spinTimer: 0, spinTickTimer: 0,
+      swingHitList: [],
       attackCooldown: 0, maxAttackCooldown: 0, heavyAttackCooldown: 0, dashCooldown: 0,
       abilityCooldown: 0, secondaryAbilityCooldown: 0, interactionCooldown: 0,
       invulnTimer: 0, hitFlashTimer: 0, slashDashTimer: 0,
-      currentWeapon: WeaponType.CURSED_BLADE, // Default to Cursed Blade for testing
+      currentWeapon: WeaponType.EXECUTIONER_AXE, // Changed to Executioner Axe for testing
       inventory: {},
       activeAbility: AbilityType.SHADOW_CALL,
       stats: { damage: 50, speed: C.PLAYER_SPEED * 1.5, attackSpeed: 1.0, critChance: 0.1, echoDurationMult: 1.0 },

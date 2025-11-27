@@ -1,5 +1,4 @@
 
-
 import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType } from '../types';
 import * as C from '../constants';
 
@@ -123,131 +122,26 @@ const drawCharacter = (
     if (p && !p.isDead && !p.isSlashDashing) {
             const weapon = C.WEAPONS[p.currentWeapon];
             ctx.save();
-            ctx.translate(facing * 10, 2);
-            let baseRot = p.aimAngle || 0;
-            let swingOffset = 0; let progress = 0;
             
-            if (p.isAttacking) {
-                 progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
-                 if (p.currentWeapon !== WeaponType.SHADOW_BOW) swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-                 else swingOffset = -Math.sin(progress * Math.PI) * 0.1; // Minimal shake for bow
-            } else {
-                 swingOffset = Math.sin(time * 0.1) * 0.1;
-            }
+            if (p.currentWeapon === WeaponType.SHADOW_BOW) {
+                const chestHeight = 0; 
+                ctx.translate(0, chestHeight);
+                ctx.rotate(p.aimAngle);
+                const orbitRadius = 18;
+                ctx.translate(orbitRadius, 0);
 
-            // SWOOSH EFFECT
-            if (p.isAttacking && p.currentWeapon !== WeaponType.SHADOW_BOW && progress > 0.05 && progress < 0.95) {
-                ctx.save();
-                ctx.rotate(baseRot);
-                ctx.globalAlpha = Math.sin(progress * Math.PI);
-                ctx.lineCap = 'round';
-                const range = weapon.range || 50;
-                const arcSize = weapon.arc || Math.PI;
+                if (Math.abs(p.aimAngle) > Math.PI / 2) {
+                    ctx.scale(1, -1);
+                }
 
-                const glowWidth = 16;
-                ctx.lineWidth = glowWidth;
-                ctx.strokeStyle = weapon.color;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = weapon.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, range - glowWidth / 2, -arcSize / 2, arcSize / 2);
-                ctx.stroke();
-                
-                ctx.shadowBlur = 0;
-                
-                const mainWidth = 10;
-                ctx.lineWidth = mainWidth;
-                ctx.strokeStyle = weapon.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, range - mainWidth / 2, -arcSize / 2, arcSize / 2);
-                ctx.stroke();
-                
-                const coreWidth = 4;
-                ctx.lineWidth = coreWidth;
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.beginPath();
-                ctx.arc(0, 0, range - coreWidth / 2, -arcSize / 2, arcSize / 2);
-                ctx.stroke();
-                
-                ctx.restore();
-            }
-
-            ctx.rotate(baseRot + swingOffset);
-            if (Math.abs(baseRot) > Math.PI / 2) ctx.scale(1, -1);
-            
-            if (p.isAttacking && progress > 0.2 && progress < 0.8 && p.currentWeapon !== WeaponType.SHADOW_BOW) {
-                ctx.save(); ctx.rotate(swingOffset * -0.2); ctx.globalAlpha = 0.3;
-                ctx.fillStyle = weapon.color; ctx.fillRect(0, -2, weapon.range - 5, 4);
-                ctx.restore();
-            }
-
-            if (p.currentWeapon === WeaponType.BLOOD_BLADE) {
-                const s = 2.5;
-                ctx.fillStyle = '#3f2e22'; ctx.fillRect(-4 * s, -1 * s, 5 * s, 2 * s);
-                ctx.fillStyle = '#565963'; ctx.fillRect(-5 * s, -1.5 * s, 2 * s, 3 * s);
-                ctx.fillStyle = '#8f939d'; ctx.fillRect(1 * s, -4 * s, 2 * s, 8 * s);
-                ctx.fillStyle = '#565963'; ctx.fillRect(1.5 * s, -1 * s, 1 * s, 2 * s);
-                ctx.fillStyle = '#c7cfdd'; ctx.fillRect(3 * s, -2 * s, 14 * s, 4 * s);
-                ctx.fillStyle = '#8f939d'; ctx.fillRect(3 * s, -2 * s, 14 * s, 1 * s); ctx.fillRect(3 * s, 1 * s, 14 * s, 1 * s);
-                ctx.fillStyle = '#565963'; ctx.fillRect(3 * s, -0.5 * s, 13 * s, 1 * s);
-                ctx.fillStyle = '#c7cfdd'; ctx.beginPath(); ctx.moveTo(17 * s, -2 * s); ctx.lineTo(20 * s, 0); ctx.lineTo(17 * s, 2 * s); ctx.fill();
-            } else if (p.currentWeapon === WeaponType.CURSED_BLADE) {
-                // CURSED BLADE (Katana) - Pixel Art Construction
-                const s = 2.0;
-                
-                // Handle (Tsuka) - Dark Purple/Black wrap
-                ctx.fillStyle = '#2e1065'; // Very dark purple
-                ctx.fillRect(-6*s, -1.5*s, 6*s, 3*s);
-                // Handle texture (Diamond pattern hint)
-                ctx.fillStyle = '#4c1d95'; 
-                ctx.fillRect(-5*s, -0.5*s, 1*s, 1*s);
-                ctx.fillRect(-3*s, -0.5*s, 1*s, 1*s);
-
-                // Guard (Tsuba) - Round, Gold/Bronze
-                ctx.fillStyle = '#b45309'; // Bronze
-                ctx.fillRect(0, -2.5*s, 2*s, 5*s);
-                ctx.fillStyle = '#78350f'; // Dark bronze shade
-                ctx.fillRect(0.5*s, -1.5*s, 1*s, 3*s);
-
-                // Blade (Nagasa) - Long, slightly curved
-                // Base Steel
-                ctx.fillStyle = '#334155'; // Dark Steel
-                ctx.fillRect(2*s, -1.5*s, 24*s, 3*s); 
-                
-                // Edge (Hamon) - Cursed Purple Glow
-                ctx.fillStyle = '#a855f7'; // Purple glow edge
-                ctx.fillRect(2*s, 0.5*s, 22*s, 1*s);
-                
-                // Tip (Kissaki)
-                ctx.beginPath();
-                ctx.moveTo(26*s, -1.5*s);
-                ctx.lineTo(30*s, 0); // Point
-                ctx.lineTo(24*s, 1.5*s);
-                ctx.fillStyle = '#334155';
-                ctx.fill();
-
-                // Cursed Aura particles/glint (static for now, animated by swing)
-                ctx.fillStyle = '#d8b4fe';
-                ctx.fillRect(10*s, -1*s, 1*s, 1*s);
-                ctx.fillRect(20*s, 0, 1*s, 1*s);
-
-            } else if (p.currentWeapon === WeaponType.REAPER_AXE) {
-                ctx.fillStyle = '#5c3a2e'; ctx.fillRect(-10, -2, weapon.range, 4);
-                ctx.fillStyle = weapon.color; ctx.beginPath();
-                ctx.moveTo(weapon.range - 30, -4); ctx.lineTo(weapon.range - 5, -16); ctx.lineTo(weapon.range - 5, 16); ctx.lineTo(weapon.range - 30, 4);
-                ctx.fill();
-            } else if (p.currentWeapon === WeaponType.SHADOW_BOW) {
-                // New Pixel Art Shadow Bow
+                // --- Pixel Art Shadow Bow Rendering ---
                 const s = 2; // scale
-                
-                // Colors from palette
-                const cDark = '#2e1065'; // Deep Purple (Handle/Tips)
-                const cMain = '#7c3aed'; // Violet (Limbs)
-                const cHigh = '#c4b5fd'; // Light Violet (Highlight)
-                const cGlow = '#a855f7'; // Bright Purple (Energy)
+                const cDark = '#2e1065'; 
+                const cMain = '#7c3aed'; 
+                const cHigh = '#c4b5fd'; 
+                const cGlow = '#a855f7'; 
                 const cString = 'rgba(203, 213, 225, 0.6)';
 
-                // Draw String (Inverted X coords for D-Shape)
                 let pull = 0;
                 if (p.isAttacking) {
                     pull = (1 - (p.attackCooldown / (p.maxAttackCooldown || 20))) * 8;
@@ -256,56 +150,202 @@ const drawCharacter = (
                 ctx.strokeStyle = cString;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(-3*s, -8*s); // Top Tip (Inverted X)
-                ctx.lineTo(-4*s - pull*s, 0); // Nock (unchanged, pulls back)
-                ctx.lineTo(-3*s, 8*s); // Bottom Tip (Inverted X)
+                ctx.moveTo(-3*s, -8*s); 
+                ctx.lineTo(-4*s - pull*s, 0); 
+                ctx.lineTo(-3*s, 8*s); 
                 ctx.stroke();
 
-                // Arrow (Only when drawing)
-                // REVERSED ARROW ANATOMY FIXED: Fletching at Nock, Tip at Front
                 if (p.isAttacking) {
                     ctx.fillStyle = cGlow;
-                    ctx.fillRect((-4 - pull)*s, -0.5*s, 14*s, 1*s); // Shaft
-                    
-                    // Fletching at Nock (String)
+                    ctx.fillRect((-4 - pull)*s, -0.5*s, 14*s, 1*s); 
                     ctx.fillStyle = '#e9d5ff';
                     ctx.fillRect((-4 - pull)*s, -1*s, 2*s, 2*s); 
-                    
-                    // Arrowhead at Front
                     ctx.fillStyle = '#e9d5ff';
                     ctx.fillRect((9 - pull)*s, -0.5*s, 2*s, 1*s); 
                 }
 
-                // --- Pixel Art Construction (Inverted X) ---
-                // Center Grip
-                ctx.fillStyle = '#4b5563'; 
-                ctx.fillRect(-1*s, -2*s, 2*s, 4*s); 
+                ctx.fillStyle = '#4b5563'; ctx.fillRect(-1*s, -2*s, 2*s, 4*s); 
                 
-                // Top Limb (Negative Y)
-                ctx.fillStyle = cMain; ctx.fillRect(-3*s, -4*s, 3*s, 2*s); // Base
-                ctx.fillStyle = cDark; ctx.fillRect(0, -4*s, 1*s, 2*s); // Inner (was -1s)
+                ctx.fillStyle = cMain; ctx.fillRect(-3*s, -4*s, 3*s, 2*s); 
+                ctx.fillStyle = cDark; ctx.fillRect(0, -4*s, 1*s, 2*s); 
+                ctx.fillStyle = cMain; ctx.fillRect(-3*s, -6*s, 2*s, 2*s); 
+                ctx.fillStyle = cHigh; ctx.fillRect(-3*s, -5*s, 1*s, 1*s); 
+                ctx.fillStyle = cMain; ctx.fillRect(-4*s, -8*s, 2*s, 2*s); 
+                ctx.fillStyle = cGlow; ctx.fillRect(-3.5*s, -7.5*s, 1*s, 1*s); 
+                ctx.fillStyle = cDark; ctx.fillRect(-4*s, -9*s, 1*s, 2*s); 
+                ctx.fillStyle = cDark; ctx.fillRect(-4*s, -9*s, 2*s, 1*s); 
                 
-                ctx.fillStyle = cMain; ctx.fillRect(-3*s, -6*s, 2*s, 2*s); // Mid
-                ctx.fillStyle = cHigh; ctx.fillRect(-3*s, -5*s, 1*s, 1*s); // High
-                
-                ctx.fillStyle = cMain; ctx.fillRect(-4*s, -8*s, 2*s, 2*s); // Outer
-                ctx.fillStyle = cGlow; ctx.fillRect(-3.5*s, -7.5*s, 1*s, 1*s); // Glow
-
-                ctx.fillStyle = cDark; ctx.fillRect(-4*s, -9*s, 1*s, 2*s); // Tip Base
-                ctx.fillStyle = cDark; ctx.fillRect(-4*s, -9*s, 2*s, 1*s); // Tip Cap
-                
-                // Bottom Limb (Positive Y)
                 ctx.fillStyle = cMain; ctx.fillRect(-3*s, 2*s, 3*s, 2*s);
                 ctx.fillStyle = cDark; ctx.fillRect(0, 2*s, 1*s, 2*s);
-
                 ctx.fillStyle = cMain; ctx.fillRect(-3*s, 4*s, 2*s, 2*s);
                 ctx.fillStyle = cHigh; ctx.fillRect(-3*s, 4*s, 1*s, 1*s);
-
                 ctx.fillStyle = cMain; ctx.fillRect(-4*s, 6*s, 2*s, 2*s);
                 ctx.fillStyle = cGlow; ctx.fillRect(-3.5*s, 6.5*s, 1*s, 1*s);
-
                 ctx.fillStyle = cDark; ctx.fillRect(-4*s, 7*s, 1*s, 2*s);
                 ctx.fillStyle = cDark; ctx.fillRect(-4*s, 8*s, 2*s, 1*s);
+            } else if (p.currentWeapon === WeaponType.EXECUTIONER_AXE) {
+                // --- EXECUTIONER AXE RENDER ---
+                if (p.isSpinning) {
+                    ctx.translate(0, 0); // Moved down by 5px
+                    ctx.rotate(time * 0.5); 
+                } else {
+                    // Standard visual stance
+                    ctx.translate(facing * 3, 7);
+                    
+                    let baseRot = p.aimAngle || 0;
+                    let swingOffset = 0; let progress = 0;
+                    if (p.isAttacking) {
+                        progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
+                        swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
+                        
+                        // FIX: Invert swing offset when facing left to ensure top-to-bottom swing
+                        if (Math.abs(baseRot) > Math.PI / 2) {
+                            swingOffset *= -1;
+                        }
+                    } else {
+                        swingOffset = Math.sin(time * 0.1) * 0.1;
+                    }
+                    ctx.rotate(baseRot + swingOffset);
+                    if (Math.abs(baseRot) > Math.PI / 2) ctx.scale(1, -1);
+                }
+
+                // --- AXE PIXEL ART ---
+                const s = 2.0;
+                
+                // Handle (Dark Wood/Leather) - Extended for reach
+                ctx.fillStyle = '#451a03'; // Deep brown
+                ctx.fillRect(0, -1*s, 40*s, 2*s); // Start at hand (0), go out 80px
+                
+                // Grip Wraps
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(4*s, -1.2*s, 2*s, 2.4*s);
+                ctx.fillRect(12*s, -1.2*s, 2*s, 2.4*s);
+                
+                const headX = 30*s; // 60px out
+
+                // Axe Head Connector (Dark Steel)
+                ctx.fillStyle = '#1e293b'; // Slate 800
+                ctx.fillRect(headX - 2*s, -3*s, 4*s, 6*s);
+                
+                // Double Headed Blades
+                ctx.fillStyle = '#334155'; // Slate 700 (Blade Base)
+                
+                // Top Blade
+                ctx.beginPath();
+                ctx.moveTo(headX - 2*s, -3*s);
+                ctx.lineTo(headX - 6*s, -8*s); // Top back
+                ctx.lineTo(headX + 6*s, -10*s); // Top front point
+                ctx.lineTo(headX + 2*s, -3*s); // Connect
+                ctx.fill();
+                
+                // Bottom Blade
+                ctx.beginPath();
+                ctx.moveTo(headX - 2*s, 3*s);
+                ctx.lineTo(headX - 6*s, 8*s); // Bottom back
+                ctx.lineTo(headX + 6*s, 10*s); // Bottom front point
+                ctx.lineTo(headX + 2*s, 3*s); // Connect
+                ctx.fill();
+
+                // Blade Edge (Lighter Steel)
+                ctx.fillStyle = '#94a3b8'; // Slate 400
+                // Top Edge
+                ctx.beginPath(); ctx.moveTo(headX - 6*s, -8*s); ctx.lineTo(headX + 6*s, -10*s); ctx.lineTo(headX + 4*s, -6*s); ctx.fill();
+                // Bottom Edge
+                ctx.beginPath(); ctx.moveTo(headX - 6*s, 8*s); ctx.lineTo(headX + 6*s, 10*s); ctx.lineTo(headX + 4*s, 6*s); ctx.fill();
+
+                // Blood Stains
+                ctx.fillStyle = '#7f1d1d'; // Red 900
+                ctx.fillRect(headX + 2*s, -8*s, 2*s, 2*s);
+                ctx.fillRect(headX + 4*s, 8*s, 1*s, 2*s);
+                ctx.fillRect(headX, -4*s, 3*s, 1*s);
+
+            } else {
+                // --- STANDARD MELEE WEAPONS ---
+                ctx.translate(facing * 10, 2);
+                let baseRot = p.aimAngle || 0;
+                let swingOffset = 0; let progress = 0;
+                
+                if (p.isAttacking) {
+                     progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
+                     swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
+                     
+                     // FIX: Invert swing offset when facing left to ensure top-to-bottom swing
+                     if (Math.abs(baseRot) > Math.PI / 2) {
+                        swingOffset *= -1;
+                     }
+                } else {
+                     swingOffset = Math.sin(time * 0.1) * 0.1;
+                }
+    
+                // SWOOSH EFFECT
+                if (p.isAttacking && progress > 0.05 && progress < 0.95) {
+                    ctx.save();
+                    ctx.rotate(baseRot);
+                    ctx.globalAlpha = Math.sin(progress * Math.PI);
+                    ctx.lineCap = 'round';
+                    const range = weapon.range || 50;
+                    const arcSize = weapon.arc || Math.PI;
+    
+                    const glowWidth = 16;
+                    ctx.lineWidth = glowWidth;
+                    ctx.strokeStyle = weapon.color;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = weapon.color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, range - glowWidth / 2, -arcSize / 2, arcSize / 2);
+                    ctx.stroke();
+                    
+                    ctx.shadowBlur = 0;
+                    
+                    const mainWidth = 10;
+                    ctx.lineWidth = mainWidth;
+                    ctx.strokeStyle = weapon.color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, range - mainWidth / 2, -arcSize / 2, arcSize / 2);
+                    ctx.stroke();
+                    
+                    const coreWidth = 4;
+                    ctx.lineWidth = coreWidth;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, range - coreWidth / 2, -arcSize / 2, arcSize / 2);
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                }
+    
+                ctx.rotate(baseRot + swingOffset);
+                if (Math.abs(baseRot) > Math.PI / 2) ctx.scale(1, -1);
+                
+                if (p.isAttacking && progress > 0.2 && progress < 0.8) {
+                    ctx.save(); ctx.rotate(swingOffset * -0.2); ctx.globalAlpha = 0.3;
+                    ctx.fillStyle = weapon.color; ctx.fillRect(0, -2, weapon.range - 5, 4);
+                    ctx.restore();
+                }
+    
+                if (p.currentWeapon === WeaponType.BLOOD_BLADE) {
+                    const s = 2.5;
+                    ctx.fillStyle = '#3f2e22'; ctx.fillRect(-4 * s, -1 * s, 5 * s, 2 * s);
+                    ctx.fillStyle = '#565963'; ctx.fillRect(-5 * s, -1.5 * s, 2 * s, 3 * s);
+                    ctx.fillStyle = '#8f939d'; ctx.fillRect(1 * s, -4 * s, 2 * s, 8 * s);
+                    ctx.fillStyle = '#565963'; ctx.fillRect(1.5 * s, -1 * s, 1 * s, 2 * s);
+                    ctx.fillStyle = '#c7cfdd'; ctx.fillRect(3 * s, -2 * s, 14 * s, 4 * s);
+                    ctx.fillStyle = '#8f939d'; ctx.fillRect(3 * s, -2 * s, 14 * s, 1 * s); ctx.fillRect(3 * s, 1 * s, 14 * s, 1 * s);
+                    ctx.fillStyle = '#565963'; ctx.fillRect(3 * s, -0.5 * s, 13 * s, 1 * s);
+                    ctx.fillStyle = '#c7cfdd'; ctx.beginPath(); ctx.moveTo(17 * s, -2 * s); ctx.lineTo(20 * s, 0); ctx.lineTo(17 * s, 2 * s); ctx.fill();
+                } else if (p.currentWeapon === WeaponType.CURSED_BLADE) {
+                    // CURSED BLADE (Katana) - Pixel Art Construction
+                    const s = 2.0;
+                    ctx.fillStyle = '#2e1065'; ctx.fillRect(-6*s, -1.5*s, 6*s, 3*s);
+                    ctx.fillStyle = '#4c1d95'; ctx.fillRect(-5*s, -0.5*s, 1*s, 1*s); ctx.fillRect(-3*s, -0.5*s, 1*s, 1*s);
+                    ctx.fillStyle = '#b45309'; ctx.fillRect(0, -2.5*s, 2*s, 5*s);
+                    ctx.fillStyle = '#78350f'; ctx.fillRect(0.5*s, -1.5*s, 1*s, 3*s);
+                    ctx.fillStyle = '#334155'; ctx.fillRect(2*s, -1.5*s, 24*s, 3*s); 
+                    ctx.fillStyle = '#a855f7'; ctx.fillRect(2*s, 0.5*s, 22*s, 1*s);
+                    ctx.beginPath(); ctx.moveTo(26*s, -1.5*s); ctx.lineTo(30*s, 0); ctx.lineTo(24*s, 1.5*s);
+                    ctx.fillStyle = '#334155'; ctx.fill();
+                    ctx.fillStyle = '#d8b4fe'; ctx.fillRect(10*s, -1*s, 1*s, 1*s); ctx.fillRect(20*s, 0, 1*s, 1*s);
+                }
             }
             ctx.restore();
     }
@@ -313,125 +353,137 @@ const drawCharacter = (
 };
 
 export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => {
+    // 1. Clear Screen
     ctx.fillStyle = C.COLORS.background;
     ctx.fillRect(0, 0, C.CANVAS_WIDTH, C.CANVAS_HEIGHT);
 
     ctx.save();
     ctx.translate(state.camera.x, state.camera.y);
 
-    const startCol = Math.floor(-state.camera.x / C.TILE_SIZE);
-    const endCol = startCol + (C.CANVAS_WIDTH / C.TILE_SIZE) + 1;
-    const startRow = Math.floor(-state.camera.y / C.TILE_SIZE);
-    const endRow = startRow + (C.CANVAS_HEIGHT / C.TILE_SIZE) + 1;
-
-    for (let y = Math.max(0, startRow); y < Math.min(state.dungeon.height, endRow); y++) {
-      for (let x = Math.max(0, startCol); x < Math.min(state.dungeon.width, endCol); x++) {
-        const tile = state.dungeon.grid[y][x];
-        const px = x * C.TILE_SIZE;
-        const py = y * C.TILE_SIZE;
-        if (tile === TileType.FLOOR) {
-          ctx.fillStyle = (x + y) % 2 === 0 ? C.COLORS.floor : C.COLORS.floorAlt;
-          ctx.fillRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
-        } else if (tile === TileType.WALL) {
-          ctx.fillStyle = C.COLORS.wall;
-          ctx.fillRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
-        } else if (tile === TileType.DOOR_CLOSED) {
-          ctx.fillStyle = C.COLORS.doorClosed;
-          ctx.fillRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
-        } else if (tile === TileType.DOOR_OPEN) {
-          ctx.fillStyle = C.COLORS.doorOpen;
-          ctx.fillRect(px, py, C.TILE_SIZE, C.TILE_SIZE);
-        }
-      }
-    }
-
-    state.items.forEach(item => {
-      ctx.shadowBlur = 10; ctx.shadowColor = item.color; ctx.fillStyle = item.color;
-      const bob = Math.sin(state.time * 0.1) * 3;
-      const cx = item.x + item.width/2; const cy = item.y + item.height/2 + bob;
-      if (item.itemType === ItemType.PORTAL) {
-          ctx.save(); ctx.translate(cx, cy); ctx.rotate(state.time * 0.05);
-          const gradient = ctx.createRadialGradient(0, 0, 5, 0, 0, 25);
-          gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(0.5, C.COLORS.portal); gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
-          ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(0, 0, 25 + Math.sin(state.time * 0.2) * 2, 0, Math.PI * 2); ctx.fill();
-          ctx.restore();
-      } else {
-          ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
-      }
-    });
-
-    const allEntities = [...state.enemies, ...state.echoes, state.player].sort((a, b) => (a.y + a.height) - (b.y + b.height));
+    // 2. Render Dungeon
+    const { dungeon } = state;
+    const { grid, tileSize } = dungeon;
     
-    allEntities.forEach(e => drawCharacter(ctx, e, state.time));
-    
-    // Explicitly check for Enemy type for health bar rendering
-    allEntities.forEach((entity) => {
-        if (entity.type === EntityType.ENEMY) {
-            const e = entity as Enemy;
-            const hpPct = e.hp / e.maxHp;
-            if (hpPct < 1) {
-               ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x, e.y - 12, e.width, 4);
-               ctx.fillStyle = '#ef4444'; ctx.fillRect(e.x, e.y - 12, e.width * hpPct, 4);
+    // Viewport calculation to cull tiles
+    const startCol = Math.floor(-state.camera.x / tileSize) - 1;
+    const endCol = startCol + (C.CANVAS_WIDTH / tileSize) + 2;
+    const startRow = Math.floor(-state.camera.y / tileSize) - 1;
+    const endRow = startRow + (C.CANVAS_HEIGHT / tileSize) + 2;
+
+    for (let y = Math.max(0, startRow); y < Math.min(dungeon.height, endRow); y++) {
+        for (let x = Math.max(0, startCol); x < Math.min(dungeon.width, endCol); x++) {
+            const tile = grid[y][x];
+            if (tile === TileType.VOID) continue;
+
+            const tx = x * tileSize;
+            const ty = y * tileSize;
+
+            if (tile === TileType.FLOOR) {
+                ctx.fillStyle = ((x + y) % 2 === 0) ? C.COLORS.floor : C.COLORS.floorAlt;
+                ctx.fillRect(tx, ty, tileSize, tileSize);
+            } else if (tile === TileType.WALL) {
+                ctx.fillStyle = C.COLORS.wall;
+                ctx.fillRect(tx, ty, tileSize, tileSize);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(tx, ty - 10, tileSize, 10);
+            } else if (tile === TileType.DOOR_CLOSED) {
+                ctx.fillStyle = C.COLORS.doorClosed;
+                ctx.fillRect(tx, ty, tileSize, tileSize);
+                ctx.strokeStyle = '#000';
+                ctx.strokeRect(tx, ty, tileSize, tileSize);
+            } else if (tile === TileType.DOOR_OPEN) {
+                ctx.fillStyle = C.COLORS.doorOpen;
+                ctx.fillRect(tx, ty, tileSize, tileSize);
             }
         }
-    });
+    }
 
-    state.projectiles.forEach(proj => {
+    // 3. Render Items
+    state.items.forEach(item => {
+        const floatY = Math.sin(state.time * 0.1 + item.floatOffset * 10) * 5;
+        const cx = item.x + item.width / 2;
+        const cy = item.y + item.height / 2 + floatY;
+        
         ctx.save();
-        if (proj.renderStyle === 'WAVE') {
-             ctx.translate(proj.x, proj.y);
-             ctx.rotate(Math.atan2(proj.vy, proj.vx));
-             ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 20; ctx.shadowColor = '#ef4444';
-             ctx.fillStyle = `rgba(239, 68, 68, 0.4)`; ctx.beginPath(); ctx.arc(-10, 0, 20, -Math.PI/2, Math.PI/2); ctx.fill();
-             const gradient = ctx.createLinearGradient(0, -15, 0, 15);
-             gradient.addColorStop(0, '#7f1d1d'); gradient.addColorStop(0.5, '#ef4444'); gradient.addColorStop(1, '#7f1d1d');
-             ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(0, 0, 15, -Math.PI/2, Math.PI/2, false); ctx.quadraticCurveTo(-5, 0, 0, 15); ctx.fill();
-        } else if (proj.renderStyle === 'SHADOW_ARROW') {
-             // New Arrow VFX
-             ctx.translate(proj.x, proj.y);
-             ctx.rotate(Math.atan2(proj.vy, proj.vx));
-             
-             // Trail
-             ctx.globalCompositeOperation = 'lighter';
-             const gradient = ctx.createLinearGradient(-20, 0, 10, 0);
-             gradient.addColorStop(0, 'rgba(124, 58, 237, 0)');
-             gradient.addColorStop(0.5, 'rgba(167, 139, 250, 0.4)');
-             gradient.addColorStop(1, 'rgba(216, 180, 254, 0.8)');
-             ctx.fillStyle = gradient;
-             ctx.fillRect(-25, -4, 30, 8);
+        ctx.translate(cx, cy);
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.ellipse(0, 20 - floatY, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
 
-             // Arrow Body
-             ctx.fillStyle = '#f3e8ff'; // White-purple
-             ctx.beginPath();
-             ctx.moveTo(0, -2); ctx.lineTo(12, 0); ctx.lineTo(0, 2); ctx.fill();
-             
-             // Glow
-             ctx.shadowBlur = 10; ctx.shadowColor = '#a855f7';
-             ctx.fillStyle = '#a855f7';
-             ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+        if (item.itemType === ItemType.PORTAL) {
+             ctx.fillStyle = item.color;
+             const scale = 1 + Math.sin(state.time * 0.1) * 0.1;
+             ctx.scale(scale, scale);
+             ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
+             ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
         } else {
-            ctx.fillStyle = proj.color; ctx.beginPath();
-            ctx.arc(proj.x, proj.y, proj.width/2, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = item.color;
+             ctx.rotate(state.time * 0.05);
+             ctx.fillRect(-8, -8, 16, 16);
+             ctx.fillStyle = '#fff';
+             ctx.globalAlpha = 0.5;
+             ctx.fillRect(-8, -8, 16, 4);
         }
         ctx.restore();
     });
 
-    state.particles.forEach(part => {
-        ctx.fillStyle = part.color; ctx.globalAlpha = part.lifeTime / part.maxLifeTime;
-        ctx.fillRect(part.x, part.y, part.width, part.height);
+    // 4. Render Entities
+    const allEntities = [state.player, ...state.enemies, ...state.echoes];
+    allEntities.sort((a, b) => (a.y + a.height) - (b.y + b.height));
+
+    allEntities.forEach(entity => {
+        if (!entity.isDead) {
+            drawCharacter(ctx, entity as Player | Enemy | Echo, state.time);
+        }
+    });
+
+    // 5. Render Projectiles
+    state.projectiles.forEach(p => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.fillStyle = p.color;
+        if (p.renderStyle === 'WAVE') {
+             const angle = Math.atan2(p.vy, p.vx);
+             ctx.rotate(angle);
+             ctx.beginPath(); ctx.arc(0, 0, p.width, -Math.PI/2, Math.PI/2); ctx.fill();
+        } else if (p.renderStyle === 'SHADOW_ARROW') {
+             const angle = Math.atan2(p.vy, p.vx);
+             ctx.rotate(angle);
+             ctx.fillStyle = '#d8b4fe';
+             ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-6, -4); ctx.lineTo(-6, 4); ctx.fill();
+        } else {
+             ctx.beginPath(); ctx.arc(0, 0, p.width/2, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+    });
+
+    // 6. Render Particles
+    state.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.lifeTime / p.maxLifeTime;
+        ctx.fillRect(p.x, p.y, p.width, p.height);
         ctx.globalAlpha = 1.0;
     });
 
-    ctx.restore(); 
+    // 7. Render Damage Numbers
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
     state.damageNumbers.forEach(dn => {
-        const screenX = dn.x + state.camera.x;
-        const screenY = dn.y + state.camera.y;
-        const alpha = Math.min(1, dn.lifeTime / 20);
-        ctx.globalAlpha = alpha;
-        ctx.font = dn.isCrit ? '900 24px "Segoe UI", Arial' : 'bold 16px "Segoe UI", Arial';
-        ctx.fillStyle = dn.color; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-        ctx.strokeText(Math.floor(dn.value).toString(), screenX, screenY);
-        ctx.fillText(Math.floor(dn.value).toString(), screenX, screenY);
-        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = dn.color;
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        const scale = Math.min(1.5, dn.lifeTime / 10);
+        ctx.save();
+        ctx.translate(dn.x, dn.y);
+        ctx.scale(scale, scale);
+        if (dn.isCrit) {
+            ctx.font = 'bold 16px monospace';
+            ctx.fillStyle = '#fbbf24';
+        }
+        ctx.strokeText(Math.floor(dn.value).toString(), 0, 0);
+        ctx.fillText(Math.floor(dn.value).toString(), 0, 0);
+        ctx.restore();
     });
+
+    ctx.restore();
 };

@@ -33,7 +33,7 @@ export enum ItemType {
 export enum WeaponType {
   BLOOD_BLADE = 'BLOOD_BLADE', // Sword
   CURSED_BLADE = 'CURSED_BLADE', // Katana (Fast, Cursed)
-  REAPER_AXE = 'REAPER_AXE',   // Heavy Slow
+  EXECUTIONER_AXE = 'EXECUTIONER_AXE',   // Heavy Slow, Spinning
   SHADOW_BOW = 'SHADOW_BOW'    // Ranged
 }
 
@@ -44,7 +44,7 @@ export enum AbilityType {
   BLOOD_WAVE = 'BLOOD_WAVE', // Blood Blade (New)
   HEAVY_SWING = 'HEAVY_SWING', // Deprecated but kept for compatibility if needed
   CURSED_DASH = 'CURSED_DASH', // Cursed Blade (Samurai Dash)
-  GROUND_CLEAVE = 'GROUND_CLEAVE', // Reaper Axe
+  EXECUTIONER_SWIRL = 'EXECUTIONER_SWIRL', // Executioner Axe
   PIERCING_VOLLEY = 'PIERCING_VOLLEY', // Shadow Bow
   
   // Map Pickups (Disabled for now)
@@ -128,6 +128,14 @@ export interface Player extends Entity {
   isSlashDashing: boolean; // Special ability state
   isAttacking: boolean;
   
+  // Executioner Swirl State
+  isSpinning: boolean;
+  spinTimer: number;
+  spinTickTimer: number; // For damage intervals
+
+  // Swing Logic (Real-time hitbox)
+  swingHitList: string[]; // List of enemy IDs hit in current swing
+
   // Cooldowns
   attackCooldown: number;
   maxAttackCooldown: number; // For animation normalization
@@ -187,6 +195,7 @@ export interface Enemy extends Entity {
   // Status Effects
   bleedStack?: number;
   bleedTimer?: number;
+  swirlTimer?: number; // Throttle for Executioner Swirl damage
 }
 
 export interface Echo extends Entity {

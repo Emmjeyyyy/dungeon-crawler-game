@@ -35,6 +35,9 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
         
         if (e.attackCooldown > 0) e.attackCooldown--;
         if (e.hitFlashTimer > 0) e.hitFlashTimer--;
+        
+        // Handle custom cooldowns
+        if (e.swirlTimer && e.swirlTimer > 0) e.swirlTimer--;
 
         if (e.bleedStack && e.bleedTimer) {
              if (state.time % 30 === 0) {

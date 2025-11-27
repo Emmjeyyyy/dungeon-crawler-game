@@ -72,24 +72,24 @@ export const WEAPONS = {
         description: 'Dash through enemies with a shadow slash.'
     }
   },
-  [WeaponType.REAPER_AXE]: {
-    name: 'Reaper Axe',
+  [WeaponType.EXECUTIONER_AXE]: {
+    name: 'Executioner Axe',
     damageMult: 2.5,
     speedMult: 0.5,
     range: 95,
     arc: (Math.PI * 2) / 3, // Standardized 120-degree arc
     heavyMult: 3.5,
-    color: '#7f1d1d', // Red 900
+    color: '#334155', // Slate 700 (Dark Metal)
     cooldown: 40,
-    description: 'Slow, devastating cleaves.',
+    description: 'Brutal double-edged heavy strikes.',
     secondary: {
-        type: AbilityType.GROUND_CLEAVE,
-        name: 'Ground Cleave',
-        cooldown: 240, // 4s
-        color: '#450a0a',
-        damageMult: 4.0,
-        radius: 120,
-        description: 'Slam ground, AoE knockback.'
+        type: AbilityType.EXECUTIONER_SWIRL,
+        name: 'Executioner Swirl',
+        cooldown: 480, // 8s total (3s duration + 5s cooldown)
+        color: '#7f1d1d',
+        damageMult: 0.8, // Per tick
+        radius: 80,
+        description: 'Spin for 3s, dealing continuous damage.'
     }
   },
   [WeaponType.SHADOW_BOW]: {
