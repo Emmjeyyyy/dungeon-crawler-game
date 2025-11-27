@@ -87,7 +87,6 @@ export const createInitialState = (): GameState => {
 
 export const createTestState = (): GameState => {
   const dungeon = createTestDungeon();
-  const startRoom = dungeon.rooms[0];
   // Center of the test map
   const px = (dungeon.width * C.TILE_SIZE) / 2;
   const py = (dungeon.height * C.TILE_SIZE) / 2;
