@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { 
   GameState, Player, Enemy,
@@ -755,8 +754,8 @@ export const useGameLoop = (
         const isAttacking = entity.isAttacking;
         
         ctx.save();
-        // Pivot point adjusted downward to waist level for better visual holding position
-        ctx.translate(facing * 4, -4);
+        // Pivot point adjusted downward to waist/hip level for better visual holding position
+        ctx.translate(facing * 4, 10);
         
         // Base Aim Rotation
         let baseRot = entity.aimAngle !== undefined ? entity.aimAngle : 0;
@@ -785,7 +784,7 @@ export const useGameLoop = (
         if (isAttacking && entity.currentWeapon !== WeaponType.SHADOW_BOW && progress > 0.05 && progress < 0.95) {
              ctx.save();
              // IMPORTANT: Use the exact same transform origin as the weapon to stay synced
-             // The weapon translation is (facing * 4, -4). We are already there because we are inside the `save` block.
+             // The weapon translation is (facing * 4, 10). We are already there because we are inside the `save` block.
              ctx.rotate(baseRot); // Rotate to aim direction
              
              const range = (weapon.range || 50); // Exact match to weapon length
