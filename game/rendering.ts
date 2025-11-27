@@ -8,19 +8,22 @@ const drawCharacter = (
       time: number
   ) => {
     
-    // Type guards for cleaner code
     const isPlayer = entity.type === EntityType.PLAYER;
     const isEnemy = entity.type === EntityType.ENEMY;
     const isEcho = entity.type === EntityType.ECHO;
 
-    // FIX: Guard Player-specific property `isSlashDashing`
-    if (isPlayer && (entity as Player).isSlashDashing) {
+    const p = isPlayer ? (entity as Player) : null;
+    const e = isEnemy ? (entity as Enemy) : null;
+    const echo = isEcho ? (entity as Echo) : null;
+
+    // Guard Player-specific property `isSlashDashing`
+    if (p && p.isSlashDashing) {
          ctx.save();
-         ctx.translate(entity.x + entity.width/2 - entity.vx * 2, entity.y + entity.height - entity.vy * 2);
+         ctx.translate(p.x + p.width/2 - p.vx * 2, p.y + p.height - p.vy * 2);
          ctx.globalAlpha = 0.3; ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(0, -10, 10, 0, Math.PI*2); ctx.fill();
          ctx.restore();
          ctx.save();
-         ctx.translate(entity.x + entity.width/2 - entity.vx, entity.y + entity.height - entity.vy);
+         ctx.translate(p.x + p.width/2 - p.vx, p.y + p.height - p.vy);
          ctx.globalAlpha = 0.5; ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(0, -10, 10, 0, Math.PI*2); ctx.fill();
          ctx.restore();
     }
@@ -33,25 +36,28 @@ const drawCharacter = (
     ctx.translate(entity.x + entity.width/2, entity.y + entity.height);
 
     // Scaling
-    if (isEnemy && (entity as Enemy).enemyType === EnemyType.BOSS) {
+    if (e && e.enemyType === EnemyType.BOSS) {
       ctx.scale(2, 2);
-    } else if (isEnemy || isEcho) {
-      const scale = (entity as Enemy | Echo).scale || 1;
+    } else if (e) {
+      const scale = e.scale || 1;
+      ctx.scale(scale, scale);
+    } else if (echo) {
+      const scale = echo.scale || 1;
       ctx.scale(scale, scale);
     }
 
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(0, 0, 10, 4, 0, 0, Math.PI*2); ctx.fill();
 
-    if (isEcho) {
+    if (echo) {
         ctx.globalAlpha = 0.5;
-        if ((entity as Echo).tier === 3) ctx.globalAlpha = 0.5 + Math.sin(time * 0.2) * 0.2;
+        if (echo.tier === 3) ctx.globalAlpha = 0.5 + Math.sin(time * 0.2) * 0.2;
     }
 
     ctx.fillStyle = isEnemy ? '#271a1a' : '#0f172a';
     const legOffset = isMoving ? Math.sin(time * 0.5) * 6 : 0;
     
-    if (isEnemy && (entity as Enemy).enemyType === EnemyType.MYSTIC) {
+    if (e && e.enemyType === EnemyType.MYSTIC) {
         ctx.fillStyle = entity.color;
         ctx.beginPath(); ctx.moveTo(-8, -10 + bob); ctx.lineTo(0, 5 + bob); ctx.lineTo(8, -10 + bob); ctx.fill();
     } else {
@@ -63,21 +69,20 @@ const drawCharacter = (
     
     // Hit flash
     let hitFlash = false;
-    if (isPlayer || isEnemy) {
-        if ((entity as Player | Enemy).hitFlashTimer > 0) hitFlash = true;
-    }
+    if (p && p.hitFlashTimer > 0) hitFlash = true;
+    if (e && e.hitFlashTimer > 0) hitFlash = true;
 
     ctx.fillStyle = hitFlash ? '#ffffff' : entity.color;
     
     // Body shapes logic
-    if ((isEnemy && (entity as Enemy).enemyType === EnemyType.STANDARD) || (isEcho && (entity as Echo).tier === 1)) {
+    if ((e && e.enemyType === EnemyType.STANDARD) || (echo && echo.tier === 1)) {
         ctx.fillRect(-6, -10, 14, 14);
-    } else if ((isEnemy && (entity as Enemy).enemyType === EnemyType.ELITE) || (isEcho && (entity as Echo).tier === 2)) {
+    } else if ((e && e.enemyType === EnemyType.ELITE) || (echo && echo.tier === 2)) {
         ctx.fillRect(-10, -18, 20, 22);
         ctx.fillStyle = '#facc15'; ctx.fillRect(-8, -16, 16, 8); 
-    } else if ((isEnemy && (entity as Enemy).enemyType === EnemyType.MYSTIC) || (isEcho && (entity as Echo).tier === 3)) {
+    } else if ((e && e.enemyType === EnemyType.MYSTIC) || (echo && echo.tier === 3)) {
         ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.lineTo(0, -20); ctx.fill();
-    } else if (isPlayer) {
+    } else if (p) {
         ctx.fillRect(-6, -14, 12, 16);
         ctx.fillStyle = '#334155'; ctx.fillRect(-6, -2, 12, 2);
         ctx.fillStyle = '#dc2626'; ctx.fillRect(-2, -12, 4, 12);
@@ -86,29 +91,33 @@ const drawCharacter = (
     ctx.translate(0, -14);
     ctx.fillStyle = hitFlash ? '#fff' : (isPlayer ? '#f1f5f9' : entity.color);
 
-    if (isEnemy) {
-        const enemy = entity as Enemy;
-        if (enemy.enemyType === EnemyType.ELITE) {
+    if (e) {
+        if (e.enemyType === EnemyType.ELITE) {
             ctx.fillRect(-7, -10, 14, 12);
             ctx.fillStyle = '#fff';
             ctx.beginPath(); ctx.moveTo(-7, -8); ctx.lineTo(-12, -14); ctx.lineTo(-6, -10);
             ctx.moveTo(7, -8); ctx.lineTo(12, -14); ctx.lineTo(6, -10); ctx.fill();
-        } else if (enemy.enemyType === EnemyType.MYSTIC) {
+        } else if (e.enemyType === EnemyType.MYSTIC) {
             ctx.beginPath(); ctx.arc(0, -5, 6, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#ffff00'; ctx.fillRect(-2, -6, 1, 1); ctx.fillRect(2, -6, 1, 1);
         } else {
             ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
         }
-    } else if (isPlayer) {
+    } else if (p) {
         ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#0f172a';
         ctx.beginPath(); ctx.arc(0, -5, 5.5, Math.PI, Math.PI * 2); ctx.fill();
+    } else if (echo) {
+        // Echo Head Rendering
+        if (echo.tier === 3) {
+             ctx.beginPath(); ctx.arc(0, -5, 6, 0, Math.PI*2); ctx.fill();
+        } else {
+             ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
+        }
     }
 
     // Player specific rendering (Weapon etc)
-    if (isPlayer) {
-        const p = entity as Player;
-        if (!p.isDead && !p.isSlashDashing) {
+    if (p && !p.isDead && !p.isSlashDashing) {
             const weapon = C.WEAPONS[p.currentWeapon];
             ctx.save();
             ctx.translate(facing * 10, 2);
@@ -193,7 +202,6 @@ const drawCharacter = (
                 ctx.beginPath(); ctx.moveTo(2, -16); ctx.lineTo(2, 16); ctx.stroke();
             }
             ctx.restore();
-        }
     }
     ctx.restore(); 
 };
@@ -250,12 +258,15 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
     
     allEntities.forEach(e => drawCharacter(ctx, e, state.time));
     
-    // Explicitly cast to Enemy[] for health bar rendering
-    (allEntities.filter(e => e.type === EntityType.ENEMY) as Enemy[]).forEach((e) => {
-        const hpPct = e.hp / e.maxHp;
-        if (hpPct < 1) {
-           ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x, e.y - 12, e.width, 4);
-           ctx.fillStyle = '#ef4444'; ctx.fillRect(e.x, e.y - 12, e.width * hpPct, 4);
+    // Explicitly check for Enemy type for health bar rendering
+    allEntities.forEach((entity) => {
+        if (entity.type === EntityType.ENEMY) {
+            const e = entity as Enemy;
+            const hpPct = e.hp / e.maxHp;
+            if (hpPct < 1) {
+               ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x, e.y - 12, e.width, 4);
+               ctx.fillStyle = '#ef4444'; ctx.fillRect(e.x, e.y - 12, e.width * hpPct, 4);
+            }
         }
     });
 
