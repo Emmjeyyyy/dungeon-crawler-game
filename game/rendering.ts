@@ -103,26 +103,50 @@ const drawCharacter = (
              swingOffset = Math.sin(time * 0.1) * 0.1;
         }
 
+        // SWOOSH EFFECT - Replaced with multi-layer stroke system
         if (entity.isAttacking && entity.currentWeapon !== WeaponType.SHADOW_BOW && progress > 0.05 && progress < 0.95) {
             ctx.save();
-            ctx.rotate(baseRot);
+            ctx.rotate(baseRot); // Rotate to match aim angle
+            
             const range = weapon.range || 50;
             const arcSize = weapon.arc || Math.PI;
-            ctx.globalAlpha = Math.min(1, Math.sin(progress * Math.PI) * 1.5);
-
-            const createCrescentPath = (r: number, thickness: number) => {
-                const innerR = r - thickness; ctx.beginPath(); ctx.arc(0, 0, r, -arcSize / 2, arcSize / 2);
-                const endPointX = innerR * Math.cos(arcSize / 2); const endPointY = innerR * Math.sin(arcSize / 2);
-                ctx.quadraticCurveTo(r * 0.5, 0, endPointX, endPointY); ctx.arc(0, 0, innerR, arcSize / 2, -arcSize / 2, true);
-                const startPointX = r * Math.cos(-arcSize / 2); const startPointY = r * Math.sin(-arcSize / 2);
-                ctx.quadraticCurveTo(r * 0.5, 0, startPointX, startPointY); ctx.closePath();
-            };
             
-            ctx.shadowBlur = 15; ctx.shadowColor = weapon.color; ctx.fillStyle = weapon.color;
-            createCrescentPath(range, 12); ctx.fill();
+            // Set the base alpha for the whole effect, fading in and out with the swing
+            ctx.globalAlpha = Math.sin(progress * Math.PI);
+            
+            // --- New Multi-Layer Stroke Logic ---
+            ctx.lineCap = 'round'; // This is the key to getting smooth, tapered ends
+            
+            // 1. Outer Glow Layer
+            const glowWidth = 16;
+            ctx.lineWidth = glowWidth;
+            ctx.strokeStyle = weapon.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = weapon.color;
+            ctx.beginPath();
+            // The radius is offset by half the line width to align the outer edge with `range`
+            ctx.arc(0, 0, range - glowWidth / 2, -arcSize / 2, arcSize / 2);
+            ctx.stroke();
+            
+            // Reset shadow for subsequent layers
             ctx.shadowBlur = 0;
-            ctx.fillStyle = weapon.color; createCrescentPath(range, 8); ctx.fill();
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; createCrescentPath(range - 2, 4); ctx.fill();
+            
+            // 2. Main Color Layer
+            const mainWidth = 10;
+            ctx.lineWidth = mainWidth;
+            ctx.strokeStyle = weapon.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, range - mainWidth / 2, -arcSize / 2, arcSize / 2);
+            ctx.stroke();
+            
+            // 3. White Hot Core Layer
+            const coreWidth = 4;
+            ctx.lineWidth = coreWidth;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(0, 0, range - coreWidth / 2, -arcSize / 2, arcSize / 2);
+            ctx.stroke();
+            
             ctx.restore();
         }
 
