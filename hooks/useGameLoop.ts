@@ -1,5 +1,4 @@
-
-import { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { GameState, ItemType, WeaponType, AbilityType, Item, Inventory, EntityType, EnemyType } from '../types';
 import * as stateManager from '../game/state';
 import * as playerUpdater from '../game/player';

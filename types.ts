@@ -1,4 +1,5 @@
 
+
 export enum EntityType {
   PLAYER = 'PLAYER',
   ENEMY = 'ENEMY',
@@ -204,7 +205,7 @@ export interface Projectile extends Entity {
   ownerId: string;
   lifeTime: number;
   piercing?: boolean;
-  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER'; // For visual distinction
+  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER' | 'SHADOW_ARROW'; // For visual distinction
 }
 
 export interface Particle extends Entity {

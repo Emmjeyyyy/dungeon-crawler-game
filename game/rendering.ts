@@ -1,4 +1,5 @@
 
+
 import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType } from '../types';
 import * as C from '../constants';
 
@@ -127,7 +128,7 @@ const drawCharacter = (
             if (p.isAttacking) {
                  progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
                  if (p.currentWeapon !== WeaponType.SHADOW_BOW) swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-                 else swingOffset = -Math.sin(progress * Math.PI) * 0.2;
+                 else swingOffset = -Math.sin(progress * Math.PI) * 0.1; // Minimal shake for bow
             } else {
                  swingOffset = Math.sin(time * 0.1) * 0.1;
             }
@@ -172,7 +173,7 @@ const drawCharacter = (
             ctx.rotate(baseRot + swingOffset);
             if (Math.abs(baseRot) > Math.PI / 2) ctx.scale(1, -1);
             
-            if (p.isAttacking && progress > 0.2 && progress < 0.8) {
+            if (p.isAttacking && progress > 0.2 && progress < 0.8 && p.currentWeapon !== WeaponType.SHADOW_BOW) {
                 ctx.save(); ctx.rotate(swingOffset * -0.2); ctx.globalAlpha = 0.3;
                 ctx.fillStyle = weapon.color; ctx.fillRect(0, -2, weapon.range - 5, 4);
                 ctx.restore();
@@ -197,9 +198,75 @@ const drawCharacter = (
                 ctx.moveTo(weapon.range - 30, -4); ctx.lineTo(weapon.range - 5, -16); ctx.lineTo(weapon.range - 5, 16); ctx.lineTo(weapon.range - 30, 4);
                 ctx.fill();
             } else if (p.currentWeapon === WeaponType.SHADOW_BOW) {
-                ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.beginPath();
-                ctx.arc(2, 0, 16, -Math.PI/2, Math.PI/2); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(2, -16); ctx.lineTo(2, 16); ctx.stroke();
+                // New Pixel Art Shadow Bow
+                const s = 2; // scale
+                
+                // Colors from palette
+                const cDark = '#2e1065'; // Deep Purple (Handle/Tips)
+                const cMain = '#7c3aed'; // Violet (Limbs)
+                const cHigh = '#c4b5fd'; // Light Violet (Highlight)
+                const cGlow = '#a855f7'; // Bright Purple (Energy)
+                const cString = 'rgba(203, 213, 225, 0.6)';
+
+                // Draw String (Inverted X coords for D-Shape)
+                let pull = 0;
+                if (p.isAttacking) {
+                    pull = (1 - (p.attackCooldown / (p.maxAttackCooldown || 20))) * 8;
+                }
+                
+                ctx.strokeStyle = cString;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(-3*s, -8*s); // Top Tip (Inverted X)
+                ctx.lineTo(-4*s - pull*s, 0); // Nock (unchanged, pulls back)
+                ctx.lineTo(-3*s, 8*s); // Bottom Tip (Inverted X)
+                ctx.stroke();
+
+                // Arrow (Only when drawing)
+                // REVERSED ARROW ANATOMY FIXED: Fletching at Nock, Tip at Front
+                if (p.isAttacking) {
+                    ctx.fillStyle = cGlow;
+                    ctx.fillRect((-4 - pull)*s, -0.5*s, 14*s, 1*s); // Shaft
+                    
+                    // Fletching at Nock (String)
+                    ctx.fillStyle = '#e9d5ff';
+                    ctx.fillRect((-4 - pull)*s, -1*s, 2*s, 2*s); 
+                    
+                    // Arrowhead at Front
+                    ctx.fillStyle = '#e9d5ff';
+                    ctx.fillRect((9 - pull)*s, -0.5*s, 2*s, 1*s); 
+                }
+
+                // --- Pixel Art Construction (Inverted X) ---
+                // Center Grip
+                ctx.fillStyle = '#4b5563'; 
+                ctx.fillRect(-1*s, -2*s, 2*s, 4*s); 
+                
+                // Top Limb (Negative Y)
+                ctx.fillStyle = cMain; ctx.fillRect(-3*s, -4*s, 3*s, 2*s); // Base
+                ctx.fillStyle = cDark; ctx.fillRect(0, -4*s, 1*s, 2*s); // Inner (was -1s)
+                
+                ctx.fillStyle = cMain; ctx.fillRect(-3*s, -6*s, 2*s, 2*s); // Mid
+                ctx.fillStyle = cHigh; ctx.fillRect(-3*s, -5*s, 1*s, 1*s); // High
+                
+                ctx.fillStyle = cMain; ctx.fillRect(-4*s, -8*s, 2*s, 2*s); // Outer
+                ctx.fillStyle = cGlow; ctx.fillRect(-3.5*s, -7.5*s, 1*s, 1*s); // Glow
+
+                ctx.fillStyle = cDark; ctx.fillRect(-4*s, -9*s, 1*s, 2*s); // Tip Base
+                ctx.fillStyle = cDark; ctx.fillRect(-4*s, -9*s, 2*s, 1*s); // Tip Cap
+                
+                // Bottom Limb (Positive Y)
+                ctx.fillStyle = cMain; ctx.fillRect(-3*s, 2*s, 3*s, 2*s);
+                ctx.fillStyle = cDark; ctx.fillRect(0, 2*s, 1*s, 2*s);
+
+                ctx.fillStyle = cMain; ctx.fillRect(-3*s, 4*s, 2*s, 2*s);
+                ctx.fillStyle = cHigh; ctx.fillRect(-3*s, 4*s, 1*s, 1*s);
+
+                ctx.fillStyle = cMain; ctx.fillRect(-4*s, 6*s, 2*s, 2*s);
+                ctx.fillStyle = cGlow; ctx.fillRect(-3.5*s, 6.5*s, 1*s, 1*s);
+
+                ctx.fillStyle = cDark; ctx.fillRect(-4*s, 7*s, 1*s, 2*s);
+                ctx.fillStyle = cDark; ctx.fillRect(-4*s, 8*s, 2*s, 1*s);
             }
             ctx.restore();
     }
@@ -280,6 +347,29 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              const gradient = ctx.createLinearGradient(0, -15, 0, 15);
              gradient.addColorStop(0, '#7f1d1d'); gradient.addColorStop(0.5, '#ef4444'); gradient.addColorStop(1, '#7f1d1d');
              ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(0, 0, 15, -Math.PI/2, Math.PI/2, false); ctx.quadraticCurveTo(-5, 0, 0, 15); ctx.fill();
+        } else if (proj.renderStyle === 'SHADOW_ARROW') {
+             // New Arrow VFX
+             ctx.translate(proj.x, proj.y);
+             ctx.rotate(Math.atan2(proj.vy, proj.vx));
+             
+             // Trail
+             ctx.globalCompositeOperation = 'lighter';
+             const gradient = ctx.createLinearGradient(-20, 0, 10, 0);
+             gradient.addColorStop(0, 'rgba(124, 58, 237, 0)');
+             gradient.addColorStop(0.5, 'rgba(167, 139, 250, 0.4)');
+             gradient.addColorStop(1, 'rgba(216, 180, 254, 0.8)');
+             ctx.fillStyle = gradient;
+             ctx.fillRect(-25, -4, 30, 8);
+
+             // Arrow Body
+             ctx.fillStyle = '#f3e8ff'; // White-purple
+             ctx.beginPath();
+             ctx.moveTo(0, -2); ctx.lineTo(12, 0); ctx.lineTo(0, 2); ctx.fill();
+             
+             // Glow
+             ctx.shadowBlur = 10; ctx.shadowColor = '#a855f7';
+             ctx.fillStyle = '#a855f7';
+             ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
         } else {
             ctx.fillStyle = proj.color; ctx.beginPath();
             ctx.arc(proj.x, proj.y, proj.width/2, 0, Math.PI*2); ctx.fill();

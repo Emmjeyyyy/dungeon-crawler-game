@@ -1,4 +1,5 @@
 
+
 import { AbilityType, WeaponType, ItemRarity, PassiveItem } from "./types";
 
 export const CANVAS_WIDTH = 1280;
@@ -98,14 +99,14 @@ export const WEAPONS = {
     range: 400,
     arc: 0, // Projectile
     heavyMult: 1.5,
-    color: '#94a3b8', // Slate 400
+    color: '#7c3aed', // Violet 600 (Updated for new design)
     cooldown: 20,
     description: 'Ranged shadow arrows.',
     secondary: {
         type: AbilityType.PIERCING_VOLLEY,
         name: 'Piercing Volley',
         cooldown: 150, // 2.5s
-        color: '#cbd5e1',
+        color: '#d8b4fe',
         damageMult: 1.5,
         projectiles: 5,
         description: 'Fire a burst of piercing arrows.'
