@@ -1,5 +1,5 @@
 
-import { GameState, ItemType, WeaponType, EntityType } from '../types';
+import { GameState, ItemType, WeaponType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
 import { resolveMapCollision, rectIntersect } from './physics';
