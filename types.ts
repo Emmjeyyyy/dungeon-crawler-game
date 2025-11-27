@@ -32,7 +32,7 @@ export enum ItemType {
 
 export enum WeaponType {
   BLOOD_BLADE = 'BLOOD_BLADE', // Sword
-  DUAL_FANGS = 'DUAL_FANGS',   // Fast Daggers
+  CURSED_BLADE = 'CURSED_BLADE', // Katana (Fast, Cursed)
   REAPER_AXE = 'REAPER_AXE',   // Heavy Slow
   SHADOW_BOW = 'SHADOW_BOW'    // Ranged
 }
@@ -43,7 +43,7 @@ export enum AbilityType {
   // Weapon Specific Secondaries
   BLOOD_WAVE = 'BLOOD_WAVE', // Blood Blade (New)
   HEAVY_SWING = 'HEAVY_SWING', // Deprecated but kept for compatibility if needed
-  WHIRLING_FLURRY = 'WHIRLING_FLURRY', // Dual Fangs
+  CURSED_DASH = 'CURSED_DASH', // Cursed Blade (Samurai Dash)
   GROUND_CLEAVE = 'GROUND_CLEAVE', // Reaper Axe
   PIERCING_VOLLEY = 'PIERCING_VOLLEY', // Shadow Bow
   

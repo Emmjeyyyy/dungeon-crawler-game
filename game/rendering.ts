@@ -21,11 +21,13 @@ const drawCharacter = (
     if (p && p.isSlashDashing) {
          ctx.save();
          ctx.translate(p.x + p.width/2 - p.vx * 2, p.y + p.height - p.vy * 2);
-         ctx.globalAlpha = 0.3; ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(0, -10, 10, 0, Math.PI*2); ctx.fill();
+         // Purple/Black trail for Cursed Blade dash
+         const trailColor = p.currentWeapon === WeaponType.CURSED_BLADE ? '#4c1d95' : '#fbbf24';
+         ctx.globalAlpha = 0.3; ctx.fillStyle = trailColor; ctx.beginPath(); ctx.arc(0, -10, 10, 0, Math.PI*2); ctx.fill();
          ctx.restore();
          ctx.save();
          ctx.translate(p.x + p.width/2 - p.vx, p.y + p.height - p.vy);
-         ctx.globalAlpha = 0.5; ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(0, -10, 10, 0, Math.PI*2); ctx.fill();
+         ctx.globalAlpha = 0.5; ctx.fillStyle = trailColor; ctx.beginPath(); ctx.arc(0, -10, 10, 0, Math.PI*2); ctx.fill();
          ctx.restore();
     }
 
@@ -189,9 +191,46 @@ const drawCharacter = (
                 ctx.fillStyle = '#8f939d'; ctx.fillRect(3 * s, -2 * s, 14 * s, 1 * s); ctx.fillRect(3 * s, 1 * s, 14 * s, 1 * s);
                 ctx.fillStyle = '#565963'; ctx.fillRect(3 * s, -0.5 * s, 13 * s, 1 * s);
                 ctx.fillStyle = '#c7cfdd'; ctx.beginPath(); ctx.moveTo(17 * s, -2 * s); ctx.lineTo(20 * s, 0); ctx.lineTo(17 * s, 2 * s); ctx.fill();
-            } else if (p.currentWeapon === WeaponType.DUAL_FANGS) {
-                ctx.fillStyle = weapon.color; ctx.fillRect(-4, -2, weapon.range * 0.7, 4);
-                ctx.fillStyle = '#64748b'; ctx.fillRect(-6, 0, 4, 2);
+            } else if (p.currentWeapon === WeaponType.CURSED_BLADE) {
+                // CURSED BLADE (Katana) - Pixel Art Construction
+                const s = 2.0;
+                
+                // Handle (Tsuka) - Dark Purple/Black wrap
+                ctx.fillStyle = '#2e1065'; // Very dark purple
+                ctx.fillRect(-6*s, -1.5*s, 6*s, 3*s);
+                // Handle texture (Diamond pattern hint)
+                ctx.fillStyle = '#4c1d95'; 
+                ctx.fillRect(-5*s, -0.5*s, 1*s, 1*s);
+                ctx.fillRect(-3*s, -0.5*s, 1*s, 1*s);
+
+                // Guard (Tsuba) - Round, Gold/Bronze
+                ctx.fillStyle = '#b45309'; // Bronze
+                ctx.fillRect(0, -2.5*s, 2*s, 5*s);
+                ctx.fillStyle = '#78350f'; // Dark bronze shade
+                ctx.fillRect(0.5*s, -1.5*s, 1*s, 3*s);
+
+                // Blade (Nagasa) - Long, slightly curved
+                // Base Steel
+                ctx.fillStyle = '#334155'; // Dark Steel
+                ctx.fillRect(2*s, -1.5*s, 24*s, 3*s); 
+                
+                // Edge (Hamon) - Cursed Purple Glow
+                ctx.fillStyle = '#a855f7'; // Purple glow edge
+                ctx.fillRect(2*s, 0.5*s, 22*s, 1*s);
+                
+                // Tip (Kissaki)
+                ctx.beginPath();
+                ctx.moveTo(26*s, -1.5*s);
+                ctx.lineTo(30*s, 0); // Point
+                ctx.lineTo(24*s, 1.5*s);
+                ctx.fillStyle = '#334155';
+                ctx.fill();
+
+                // Cursed Aura particles/glint (static for now, animated by swing)
+                ctx.fillStyle = '#d8b4fe';
+                ctx.fillRect(10*s, -1*s, 1*s, 1*s);
+                ctx.fillRect(20*s, 0, 1*s, 1*s);
+
             } else if (p.currentWeapon === WeaponType.REAPER_AXE) {
                 ctx.fillStyle = '#5c3a2e'; ctx.fillRect(-10, -2, weapon.range, 4);
                 ctx.fillStyle = weapon.color; ctx.beginPath();

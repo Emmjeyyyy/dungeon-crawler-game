@@ -1,4 +1,5 @@
 
+
 import { GameState, Player, WeaponType, AbilityType, EntityType } from '../types';
 import * as C from '../constants';
 import { createDungeon, createTestDungeon } from './dungeon';
@@ -107,7 +108,7 @@ export const createTestState = (): GameState => {
       attackCooldown: 0, maxAttackCooldown: 0, heavyAttackCooldown: 0, dashCooldown: 0,
       abilityCooldown: 0, secondaryAbilityCooldown: 0, interactionCooldown: 0,
       invulnTimer: 0, hitFlashTimer: 0, slashDashTimer: 0,
-      currentWeapon: WeaponType.BLOOD_BLADE,
+      currentWeapon: WeaponType.CURSED_BLADE, // Default to Cursed Blade for testing
       inventory: {},
       activeAbility: AbilityType.SHADOW_CALL,
       stats: { damage: 50, speed: C.PLAYER_SPEED * 1.5, attackSpeed: 1.0, critChance: 0.1, echoDurationMult: 1.0 },

@@ -51,25 +51,25 @@ export const WEAPONS = {
         description: 'Launch a crimson wave that harvests souls.'
     }
   },
-  [WeaponType.DUAL_FANGS]: {
-    name: 'Dual Fangs',
-    damageMult: 0.5,
-    speedMult: 1.8,
-    range: 45,
-    arc: (Math.PI * 2) / 3, // Standardized 120-degree arc
+  [WeaponType.CURSED_BLADE]: {
+    name: 'Cursed Blade',
+    damageMult: 0.85, // Lower per-hit damage for balance
+    speedMult: 2.2, // Extremely fast
+    range: 65, // Longer than daggers, shorter than axe
+    arc: (Math.PI * 2) / 3,
     heavyMult: 1.5,
-    color: '#f472b6', // Pink 400
-    cooldown: 8,
-    description: 'Rapid strikes, low damage.',
+    color: '#4c1d95', // Violet 900
+    cooldown: 7, // Very fast attacks
+    description: 'Extremely fast, cursed katana strikes.',
     secondary: {
-        type: AbilityType.WHIRLING_FLURRY,
-        name: 'Whirling Flurry',
+        type: AbilityType.CURSED_DASH,
+        name: 'Shadow Strike',
         cooldown: 180, // 3s
-        color: '#f9a8d4',
-        damageMult: 1.0,
-        duration: 20,
-        speed: 25,
-        description: 'Dash and spin through enemies.'
+        color: '#7c3aed',
+        damageMult: 2.0,
+        duration: 15,
+        speed: 30,
+        description: 'Dash through enemies with a shadow slash.'
     }
   },
   [WeaponType.REAPER_AXE]: {

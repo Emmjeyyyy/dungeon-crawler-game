@@ -69,7 +69,8 @@ export const handleAttack = (state: GameState) => {
                 e.vx += Math.cos(angleToEnemy) * 5;
                 e.vy += Math.sin(angleToEnemy) * 5;
                 
-                createParticles(state, e.x, e.y, 3, '#b91c1c', angleToEnemy);
+                // Color particles based on weapon
+                createParticles(state, e.x, e.y, 3, weapon.color, angleToEnemy);
 
                 hitCount++;
                 state.camera.shake = 6;
@@ -127,25 +128,22 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         });
         createParticles(state, player.x, player.y, 10, '#ef4444');
         state.camera.shake = 4;
-    } else if (abilityType === AbilityType.WHIRLING_FLURRY) {
+    } else if (abilityType === AbilityType.CURSED_DASH) {
+        // Replaces Whirling Flurry with Samurai Slash Dash
         player.isDashing = true;
+        player.isSlashDashing = true; // Flag for collision damage logic in player.ts
+        player.slashDashTimer = 15; // Duration of the dash
         player.dashCooldown = config.cooldown;
-        player.invulnTimer = 15;
-        player.vx = Math.cos(player.aimAngle) * 15;
-        player.vy = Math.sin(player.aimAngle) * 15;
-        createParticles(state, player.x, player.y, 10, '#f9a8d4');
+        player.invulnTimer = 15; // I-frames
         
-        // Spawn hitboxes continuously handled in updatePlayer logic or via projectile
-        // For simplicity, we spawn a short lived projectile that travels with player
-        // Actually, let's implement the flurry damage in player update for smoother feel
-        // But for now, just a burst of damage around player
-        state.enemies.forEach(e => {
-            const dist = Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2);
-            if (dist < 80) {
-                 dealDamage(state, e, player.stats.damage * 0.5, true);
-                 createParticles(state, e.x, e.y, 3, '#f9a8d4');
-            }
-        });
+        // High Velocity
+        player.vx = Math.cos(player.aimAngle) * 25;
+        player.vy = Math.sin(player.aimAngle) * 25;
+        
+        // Initial Burst
+        createParticles(state, player.x, player.y, 15, '#7c3aed'); // Purple
+        state.camera.shake = 10;
+        
     } else if (abilityType === AbilityType.GROUND_CLEAVE) {
         createParticles(state, player.x + player.width/2, player.y + player.height/2, 30, '#7f1d1d');
         state.camera.shake = 15;
