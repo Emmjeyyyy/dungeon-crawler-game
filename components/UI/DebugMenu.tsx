@@ -1,16 +1,16 @@
-
 import React, { useState } from 'react';
 import { EnemyType, WeaponType } from '../../types';
-import { Bug, Sword, Skull, Zap } from 'lucide-react';
+import { Bug, Sword, Skull, Zap, RotateCcw } from 'lucide-react';
 import { WEAPONS } from '../../constants';
 
 interface DebugMenuProps {
   onSpawnEnemy: (type: EnemyType) => void;
   onSetWeapon: (weapon: WeaponType) => void;
   onLevelUp: () => void;
+  onReset: () => void;
 }
 
-const DebugMenu: React.FC<DebugMenuProps> = ({ onSpawnEnemy, onSetWeapon, onLevelUp }) => {
+const DebugMenu: React.FC<DebugMenuProps> = ({ onSpawnEnemy, onSetWeapon, onLevelUp, onReset }) => {
   const [selectedEnemy, setSelectedEnemy] = useState<EnemyType>(EnemyType.STANDARD);
 
   return (
@@ -59,13 +59,19 @@ const DebugMenu: React.FC<DebugMenuProps> = ({ onSpawnEnemy, onSetWeapon, onLeve
         </div>
 
         {/* Actions */}
-        <div>
-            <label className="text-[10px] uppercase tracking-widest text-slate-500 block mb-2">Global Actions</label>
+        <div className="flex flex-col gap-2">
+            <label className="text-[10px] uppercase tracking-widest text-slate-500 block">Global Actions</label>
             <button 
                 onClick={onLevelUp}
                 className="w-full bg-cyan-900/30 hover:bg-cyan-900/50 border border-cyan-800 hover:border-cyan-500 text-cyan-400 text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
             >
                 <Zap size={14} /> FORCE LEVEL UP
+            </button>
+            <button 
+                onClick={onReset}
+                className="w-full bg-red-900/30 hover:bg-red-900/50 border border-red-800 hover:border-red-500 text-red-400 text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
+            >
+                <RotateCcw size={14} /> RESET TEST ENV
             </button>
         </div>
     </div>

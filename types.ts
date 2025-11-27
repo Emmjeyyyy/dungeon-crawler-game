@@ -1,5 +1,3 @@
-
-
 export enum EntityType {
   PLAYER = 'PLAYER',
   ENEMY = 'ENEMY',
@@ -12,42 +10,39 @@ export enum EntityType {
 
 export enum GameMode {
   DUNGEON = 'DUNGEON',
-  BOSS_RUSH = 'BOSS_RUSH' // Reserved for future
+  BOSS_RUSH = 'BOSS_RUSH' 
 }
 
 export enum EnemyType {
-  STANDARD = 'STANDARD', // Weak, fast
-  ELITE = 'ELITE',       // Tanky, slower
-  MYSTIC = 'MYSTIC',     // Ranged/Special
+  STANDARD = 'STANDARD', 
+  ELITE = 'ELITE',       
+  MYSTIC = 'MYSTIC',     
   BOSS = 'BOSS'
 }
 
 export enum ItemType {
-  BLOOD_VIAL = 'BLOOD_VIAL', // Heal
-  BUFF_DAMAGE = 'BUFF_DAMAGE', // Temp Damage Up
-  BUFF_SPEED = 'BUFF_SPEED',   // Temp Speed Up
+  BLOOD_VIAL = 'BLOOD_VIAL', 
+  BUFF_DAMAGE = 'BUFF_DAMAGE', 
+  BUFF_SPEED = 'BUFF_SPEED',   
+  BUFF_ATTACK_SPEED = 'BUFF_ATTACK_SPEED', // New for Berserker Cortex
   WEAPON_DROP = 'WEAPON_DROP',
-  PORTAL = 'PORTAL' // New Portal Object
+  PORTAL = 'PORTAL' 
 }
 
 export enum WeaponType {
-  BLOOD_BLADE = 'BLOOD_BLADE', // Sword
-  CURSED_BLADE = 'CURSED_BLADE', // Katana (Fast, Cursed)
-  EXECUTIONER_AXE = 'EXECUTIONER_AXE',   // Heavy Slow, Spinning
-  SHADOW_BOW = 'SHADOW_BOW'    // Ranged
+  BLOOD_BLADE = 'BLOOD_BLADE', 
+  CURSED_BLADE = 'CURSED_BLADE', 
+  EXECUTIONER_AXE = 'EXECUTIONER_AXE',   
+  SHADOW_BOW = 'SHADOW_BOW'    
 }
 
 export enum AbilityType {
-  SHADOW_CALL = 'SHADOW_CALL', // Primary (Q)
-  
-  // Weapon Specific Secondaries
-  BLOOD_WAVE = 'BLOOD_WAVE', // Blood Blade (New)
-  HEAVY_SWING = 'HEAVY_SWING', // Deprecated but kept for compatibility if needed
-  CURSED_DASH = 'CURSED_DASH', // Cursed Blade (Samurai Dash)
-  EXECUTIONER_SWIRL = 'EXECUTIONER_SWIRL', // Executioner Axe
-  PIERCING_VOLLEY = 'PIERCING_VOLLEY', // Shadow Bow
-  
-  // Map Pickups (Disabled for now)
+  SHADOW_CALL = 'SHADOW_CALL', 
+  BLOOD_WAVE = 'BLOOD_WAVE', 
+  HEAVY_SWING = 'HEAVY_SWING', 
+  CURSED_DASH = 'CURSED_DASH', 
+  EXECUTIONER_SWIRL = 'EXECUTIONER_SWIRL', 
+  PIERCING_VOLLEY = 'PIERCING_VOLLEY', 
   SAMURAI_SLASH = 'SAMURAI_SLASH',
   BLOOD_NOVA = 'BLOOD_NOVA',
   PHASE_SHIFT = 'PHASE_SHIFT',
@@ -55,9 +50,9 @@ export enum AbilityType {
 }
 
 export enum ItemRarity {
-  COMMON = 'COMMON',     // White
-  UNCOMMON = 'UNCOMMON', // Green
-  LEGENDARY = 'LEGENDARY' // Red
+  COMMON = 'COMMON',     
+  UNCOMMON = 'UNCOMMON', 
+  LEGENDARY = 'LEGENDARY' 
 }
 
 export interface PassiveItem {
@@ -65,17 +60,17 @@ export interface PassiveItem {
   name: string;
   description: string;
   rarity: ItemRarity;
-  icon: string; // icon name
+  icon: string; 
   statMod?: {
-      target: 'damage' | 'speed' | 'attackSpeed' | 'critChance' | 'maxHp' | 'echoDuration';
-      value: number; // Additive or Multiplicative base
+      target: 'damage' | 'speed' | 'attackSpeed' | 'critChance' | 'maxHp' | 'echoDuration' | 'damageReduction' | 'cooldownReduction' | 'luck';
+      value: number; 
       isMult?: boolean;
   };
-  effect?: string; // 'bleed', 'chain', etc.
+  effect?: string; 
 }
 
 export interface Inventory {
-  [itemId: string]: number; // itemId -> stack count
+  [itemId: string]: number; 
 }
 
 export interface Vector2 {
@@ -116,66 +111,60 @@ export interface Player extends Entity {
   hp: number;
   maxHp: number;
   level: number;
-  runes: number; // Currency
+  runes: number; 
   xp: number;
   maxXp: number;
   
-  // Controls
-  facingX: number; // -1 or 1
-  facingY: number; // -1 or 1
-  aimAngle: number; // Angle in radians pointing to cursor
+  facingX: number; 
+  facingY: number; 
+  aimAngle: number; 
   isDashing: boolean;
-  isSlashDashing: boolean; // Special ability state
+  isSlashDashing: boolean; 
   isAttacking: boolean;
   
-  // Executioner Swirl State
   isSpinning: boolean;
   spinTimer: number;
-  spinTickTimer: number; // For damage intervals
+  spinTickTimer: number; 
 
-  // Swing Logic (Real-time hitbox)
-  swingHitList: string[]; // List of enemy IDs hit in current swing
+  swingHitList: string[]; 
 
-  // Cooldowns
   attackCooldown: number;
-  maxAttackCooldown: number; // For animation normalization
+  maxAttackCooldown: number; 
   heavyAttackCooldown: number;
   dashCooldown: number;
   
-  abilityCooldown: number; // Primary (Q)
-  secondaryAbilityCooldown: number; // Secondary (R-Click)
-  interactionCooldown: number; // Prevent spam swapping
+  abilityCooldown: number; 
+  secondaryAbilityCooldown: number; 
+  interactionCooldown: number; 
   
   invulnTimer: number;
   hitFlashTimer: number;
   slashDashTimer: number;
   
-  // Loadout
   currentWeapon: WeaponType;
-  inventory: Inventory; // Item Stacks
+  inventory: Inventory; 
   
-  activeAbility: AbilityType; // Primary Slot (Q)
-  // secondaryAbility removed, derived from weapon
+  activeAbility: AbilityType; 
   
-  // Stats
   stats: {
     damage: number;
     speed: number;
     attackSpeed: number;
     critChance: number;
     echoDurationMult: number;
+    damageReduction: number;
+    cooldownReduction: number;
+    luck: number;
   };
 
-  // Shadow Army Mechanic
   shadowStack: EnemyType[];
 
-  // Combo System
   combo: number;
   comboTimer: number;
   maxCombo: number;
 
-  // Buffs
   activeBuffs: { type: ItemType; timer: number; value: number }[];
+  reviveUsed: boolean; // For Cataclysm Vein
 }
 
 export interface Enemy extends Entity {
@@ -184,7 +173,7 @@ export interface Enemy extends Entity {
   maxHp: number;
   damage: number;
   attackCooldown: number;
-  maxAttackCooldown: number; // For animation
+  maxAttackCooldown: number; 
   targetId: string | null;
   xpValue: number;
   agroRange: number;
@@ -192,14 +181,16 @@ export interface Enemy extends Entity {
   scale: number;
   facingX: number;
   facingY: number;
-  // Status Effects
+  
   bleedStack?: number;
   bleedTimer?: number;
-  swirlTimer?: number; // Throttle for Executioner Swirl damage
+  naniteStack?: number; // New DoT
+  naniteTimer?: number;
+  swirlTimer?: number; 
 }
 
 export interface Echo extends Entity {
-  tier: number; // 1 = normal, 2 = merged, 3 = mystic
+  tier: number; 
   lifeTime: number;
   maxLifeTime: number;
   targetId: string | null;
@@ -214,7 +205,7 @@ export interface Projectile extends Entity {
   ownerId: string;
   lifeTime: number;
   piercing?: boolean;
-  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER' | 'SHADOW_ARROW'; // For visual distinction
+  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER' | 'SHADOW_ARROW' | 'VOID_ORB'; 
 }
 
 export interface Particle extends Entity {
@@ -228,7 +219,7 @@ export interface Item extends Entity {
   itemType: ItemType;
   value: number;
   floatOffset: number;
-  payload?: any; // For ability type or weapon type
+  payload?: any; 
 }
 
 export enum TileType {
@@ -243,7 +234,7 @@ export interface Room extends Rect {
   id: string;
   isCleared: boolean;
   isActive: boolean;
-  doorTiles: { x: number, y: number }[]; // Coordinates of door tiles
+  doorTiles: { x: number, y: number }[]; 
 }
 
 export interface Dungeon {
@@ -253,7 +244,7 @@ export interface Dungeon {
   grid: TileType[][];
   rooms: Room[];
   floor: number;
-  portalRoomId: string; // The ID of the room where the portal spawns
+  portalRoomId: string; 
 }
 
 export interface GameState {
@@ -265,7 +256,7 @@ export interface GameState {
   particles: Particle[];
   items: Item[];
   damageNumbers: DamageNumber[];
-  interactionItem: Item | null; // Item under player feet
+  interactionItem: Item | null; 
   
   camera: {
     x: number;

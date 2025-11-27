@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { GameState, ItemType, WeaponType, AbilityType, Item, Inventory, EntityType, EnemyType } from '../types';
 import * as stateManager from '../game/state';
@@ -160,6 +158,12 @@ export const useGameLoop = (
   };
 
   // DEBUG ACTIONS
+  const debugReset = () => {
+      if (gameState.current.isTestMode) {
+          gameState.current = stateManager.createTestState();
+      }
+  };
+
   const debugSpawnEnemy = (type: EnemyType) => {
       const state = gameState.current;
       const ex = state.player.x + (Math.random() - 0.5) * 300;
@@ -196,7 +200,9 @@ export const useGameLoop = (
           hitFlashTimer: 0,
           scale,
           bleedStack: 0,
-          bleedTimer: 0
+          bleedTimer: 0,
+          naniteStack: 0,
+          naniteTimer: 0
       });
       createParticles(state, ex, ey, 10, '#ffffff');
   };
@@ -214,6 +220,6 @@ export const useGameLoop = (
 
   return { 
       uiState, applyUpgrade, restartGame, togglePause, enterTestMode,
-      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp
+      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp, debugReset
   };
 };

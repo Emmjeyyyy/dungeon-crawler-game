@@ -1,5 +1,3 @@
-
-
 import { GameState, Player, WeaponType, AbilityType, EntityType } from '../types';
 import * as C from '../constants';
 import { createDungeon, createTestDungeon } from './dungeon';
@@ -11,7 +9,10 @@ export const recalculateStats = (player: Player) => {
         speed: C.PLAYER_SPEED,
         attackSpeed: 1.0,
         critChance: 0.05,
-        echoDurationMult: 1.0
+        echoDurationMult: 1.0,
+        damageReduction: 0,
+        cooldownReduction: 0,
+        luck: 0
     };
 
     Object.entries(player.inventory).forEach(([itemId, stack]) => {
@@ -27,7 +28,9 @@ export const recalculateStats = (player: Player) => {
             } else {
                 const keyMap = {
                     'damage': 'damage', 'speed': 'speed', 'attackSpeed': 'attackSpeed',
-                    'critChance': 'critChance', 'echoDuration': 'echoDurationMult'
+                    'critChance': 'critChance', 'echoDuration': 'echoDurationMult',
+                    'damageReduction': 'damageReduction', 'cooldownReduction': 'cooldownReduction',
+                    'luck': 'luck'
                 };
                 const targetKey = keyMap[target] as keyof typeof player.stats;
 
@@ -42,7 +45,10 @@ export const recalculateStats = (player: Player) => {
         }
     });
      // Attack speed is inverse, so we modify cooldowns based on it
-    player.stats.attackSpeed = 1 / (1 + (player.inventory['soldier_syringe'] || 0) * 0.15);
+     // Ion Booster gives +attackSpeed, so we divide cooldowns by attackSpeed
+    
+    // Cap damage reduction at 90%
+    player.stats.damageReduction = Math.min(0.9, player.stats.damageReduction);
 };
 
 export const createInitialState = (): GameState => {
@@ -72,10 +78,14 @@ export const createInitialState = (): GameState => {
       currentWeapon: WeaponType.BLOOD_BLADE,
       inventory: {},
       activeAbility: AbilityType.SHADOW_CALL,
-      stats: { damage: C.PLAYER_BASE_DAMAGE, speed: C.PLAYER_SPEED, attackSpeed: 1.0, critChance: 0.05, echoDurationMult: 1.0 },
+      stats: { 
+          damage: C.PLAYER_BASE_DAMAGE, speed: C.PLAYER_SPEED, attackSpeed: 1.0, 
+          critChance: 0.05, echoDurationMult: 1.0, damageReduction: 0, cooldownReduction: 0, luck: 0 
+      },
       shadowStack: [],
       combo: 0, comboTimer: 0, maxCombo: 0,
-      activeBuffs: []
+      activeBuffs: [],
+      reviveUsed: false
   };
 
   return {
@@ -90,7 +100,6 @@ export const createInitialState = (): GameState => {
 
 export const createTestState = (): GameState => {
   const dungeon = createTestDungeon();
-  // Center of the test map
   const px = (dungeon.width * C.TILE_SIZE) / 2;
   const py = (dungeon.height * C.TILE_SIZE) / 2;
   
@@ -103,7 +112,7 @@ export const createTestState = (): GameState => {
       x: px, y: py,
       width: C.PLAYER_SIZE.width, height: C.PLAYER_SIZE.height,
       vx: 0, vy: 0, color: C.COLORS.player, isDead: false,
-      hp: 1000, maxHp: 1000, // Boosted stats for testing
+      hp: 1000, maxHp: 1000,
       level: 1, runes: 9999, xp: 0, maxXp: 100,
       facingX: 1, facingY: 1, aimAngle: 0,
       isDashing: false, isSlashDashing: false, isAttacking: false,
@@ -112,13 +121,17 @@ export const createTestState = (): GameState => {
       attackCooldown: 0, maxAttackCooldown: 0, heavyAttackCooldown: 0, dashCooldown: 0,
       abilityCooldown: 0, secondaryAbilityCooldown: 0, interactionCooldown: 0,
       invulnTimer: 0, hitFlashTimer: 0, slashDashTimer: 0,
-      currentWeapon: WeaponType.EXECUTIONER_AXE, // Changed to Executioner Axe for testing
+      currentWeapon: WeaponType.EXECUTIONER_AXE,
       inventory: {},
       activeAbility: AbilityType.SHADOW_CALL,
-      stats: { damage: 50, speed: C.PLAYER_SPEED * 1.5, attackSpeed: 1.0, critChance: 0.1, echoDurationMult: 1.0 },
+      stats: { 
+          damage: 50, speed: C.PLAYER_SPEED * 1.5, attackSpeed: 1.0, 
+          critChance: 0.1, echoDurationMult: 1.0, damageReduction: 0, cooldownReduction: 0, luck: 0 
+      },
       shadowStack: [],
       combo: 0, comboTimer: 0, maxCombo: 0,
-      activeBuffs: []
+      activeBuffs: [],
+      reviveUsed: false
   };
 
   return {

@@ -1,9 +1,8 @@
-
-import { GameState, ItemType, WeaponType } from '../types';
+import { GameState, ItemType, WeaponType, EntityType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
 import { resolveMapCollision, rectIntersect } from './physics';
-import { createParticles } from './spawners';
+import { createParticles, spawnEcho } from './spawners';
 import { spawnDamageNumber } from './spawners';
 
 export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: number, y: number}) => {
@@ -16,7 +15,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
     const pCenterX = player.x + player.width/2;
     const pCenterY = player.y + player.height/2;
     
-    // Normal aiming only if not spinning (or allow slow aiming/fixed rotation)
     player.aimAngle = Math.atan2(worldMy - pCenterY, worldMx - pCenterX);
     
     if (!player.isSlashDashing) {
@@ -32,7 +30,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             const newWeapon = state.interactionItem.payload;
             player.currentWeapon = newWeapon;
             player.secondaryAbilityCooldown = 0;
-            // Reset special states if swapping weapon
             player.isSpinning = false;
             
             state.interactionItem.payload = player.currentWeapon;
@@ -53,32 +50,35 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         if (player.comboTimer <= 0) player.combo = 0;
     }
 
+    // Process Buffs
     player.activeBuffs = player.activeBuffs.filter(b => {
         b.timer--;
-        return b.timer > 0;
+        if (b.timer <= 0) {
+            // If Berserker buff expires, remove the attack speed bonus
+            if (b.type === ItemType.BUFF_ATTACK_SPEED) {
+                player.stats.attackSpeed -= b.value;
+            }
+            return false;
+        }
+        return true;
     });
 
     // --- SPECIAL ABILITY STATES ---
 
     if (player.isSpinning) {
-        // EXECUTIONER SWIRL LOGIC
         player.spinTimer--;
         
-        // Calculate Rotating Axe Head Position
         const orbitRadius = 60;
         const spinSpeed = 0.5;
         const spinAngle = state.time * spinSpeed;
         const axeHeadX = pCenterX + Math.cos(spinAngle) * orbitRadius;
         const axeHeadY = pCenterY + Math.sin(spinAngle) * orbitRadius;
         
-        // PARTICLE TRAIL (Visuals)
         if (state.time % 2 === 0) {
              createParticles(state, axeHeadX, axeHeadY, 2, '#7f1d1d', spinAngle + Math.PI/2);
         }
 
-        // CONTINUOUS COLLISION CHECK (Every Frame)
-        // Dynamic Hitbox at Axe Head
-        const hitboxRadius = 40; // Size of the axe head swing area
+        const hitboxRadius = 40; 
         const weaponConfig = C.WEAPONS[player.currentWeapon];
         
         let hitCount = 0;
@@ -86,17 +86,14 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         state.enemies.forEach(e => {
             const dist = Math.sqrt((e.x + e.width/2 - axeHeadX)**2 + (e.y + e.height/2 - axeHeadY)**2);
             
-            // Check collision + per-enemy swirl cooldown (prevents 60 hits/sec)
             if (dist < hitboxRadius && (!e.swirlTimer || e.swirlTimer <= 0)) {
                 const dmgMult = weaponConfig.secondary?.damageMult || 0.5;
                 const damage = player.stats.damage * dmgMult;
                 const isCrit = Math.random() < player.stats.critChance;
                 dealDamage(state, e, damage, isCrit);
                 
-                // Set throttle timer for this enemy (e.g., hit every 10 frames = 6 hits/sec)
                 e.swirlTimer = 10;
                 
-                // Knockback outward from player
                 const angle = Math.atan2(e.y - player.y, e.x - player.x);
                 e.vx += Math.cos(angle) * 4;
                 e.vy += Math.sin(angle) * 4;
@@ -108,7 +105,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
         if (hitCount > 0) state.camera.shake = 3;
 
-        // Movement Logic
         let dx = 0; let dy = 0;
         if (inputs.has('KeyW')) dy -= 1;
         if (inputs.has('KeyS')) dy += 1;
@@ -119,7 +115,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             const len = Math.sqrt(dx*dx + dy*dy);
             dx /= len; dy /= len;
         }
-        const speed = player.stats.speed * 0.8; // Slight slow during spin
+        const speed = player.stats.speed * 0.8; 
         player.vx += dx * speed * 0.2;
         player.vy += dy * speed * 0.2;
         player.vx *= C.FRICTION;
@@ -155,7 +151,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             player.vy *= 0.1;
         }
     } else if (!player.isDashing) {
-      // NORMAL MOVEMENT
       let dx = 0; let dy = 0;
       if (inputs.has('KeyW')) dy -= 1;
       if (inputs.has('KeyS')) dy += 1;
@@ -172,46 +167,35 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
       player.vx *= C.FRICTION;
       player.vy *= C.FRICTION;
 
-      // Handle Attack Logic
       if (player.attackCooldown > 0) {
         player.attackCooldown--;
         player.isAttacking = true;
 
-        // --- EXECUTIONER AXE REAL-TIME SWING LOGIC ---
         if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
              const weapon = C.WEAPONS[player.currentWeapon];
-             // Animation Progress (0 to 1)
              const progress = 1 - (player.attackCooldown / player.maxAttackCooldown);
-             
-             // Calculate Swing Angle (Sine Wave matching visual)
              let swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
 
-             // FIX: Invert Swing Offset if facing left
              if (Math.abs(player.aimAngle) > Math.PI / 2) {
                  swingOffset *= -1;
              }
 
              const currentAngle = player.aimAngle + swingOffset;
-
-             // Calculate Axe Head Position
-             const weaponRange = 60; // Distance of the hitbox center from player (matches visual handle length)
+             const weaponRange = 60; 
              const axeX = pCenterX + Math.cos(currentAngle) * weaponRange;
              const axeY = pCenterY + Math.sin(currentAngle) * weaponRange;
 
-             // Visual Debug (Particles on swing path)
              if (state.time % 2 === 0) {
                  createParticles(state, axeX, axeY, 1, '#334155');
              }
 
-             // Check Collision with circular hitbox at Axe Head
              const axeHitboxRadius = 40; 
              
              state.enemies.forEach(e => {
-                 if (player.swingHitList.includes(e.id)) return; // Already hit this swing
+                 if (player.swingHitList.includes(e.id)) return; 
 
                  const dist = Math.sqrt((e.x + e.width/2 - axeX)**2 + (e.y + e.height/2 - axeY)**2);
                  if (dist < axeHitboxRadius) {
-                     // HIT!
                      const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
                      const dmgMult = dmgBuff ? 1.5 : 1.0;
                      const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
@@ -221,8 +205,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
                      dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
                      
-                     // Knockback along swing arc tangentially? Or just away?
-                     // Away is simpler and feels impactful
                      const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
                      e.vx += Math.cos(pushAngle) * 8;
                      e.vy += Math.sin(pushAngle) * 8;
@@ -251,8 +233,18 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
       if (player.dashCooldown > 0) player.dashCooldown--;
       if (inputs.has('ShiftLeft') && player.dashCooldown <= 0) {
           player.isDashing = true;
-          player.dashCooldown = C.DASH_COOLDOWN;
+          // Apply Cooldown Reduction to Dash
+          const cdr = Math.min(0.75, player.stats.cooldownReduction);
+          player.dashCooldown = Math.ceil(C.DASH_COOLDOWN * (1 - cdr));
+          
           player.invulnTimer = 20;
+          
+          // 15. Chrono Splitter: Create Time Clone (Echo)
+          if (player.inventory['chrono_splitter']) {
+              spawnEcho(state, player.x + player.width/2, player.y + player.height/2, 2); // Merged Echo as Clone
+              createParticles(state, player.x, player.y, 10, '#ffffff'); // Flash
+          }
+
           const len = Math.sqrt(player.vx*player.vx + player.vy*player.vy);
           if (len > 0.1) {
               player.vx = (player.vx / len) * C.PLAYER_DASH_FORCE;
@@ -265,7 +257,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
       }
       resolveMapCollision(player, dungeon);
     } else {
-        // Dashing State
         player.vx *= 0.9;
         player.vy *= 0.9;
         resolveMapCollision(player, dungeon);

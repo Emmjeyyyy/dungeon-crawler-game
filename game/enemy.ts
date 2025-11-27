@@ -1,7 +1,7 @@
 import { GameState, EnemyType, EntityType } from '../types';
 import * as C from '../constants';
 import { resolveMapCollision } from './physics';
-import { dealDamage } from './eventHandlers';
+import { dealDamage, damagePlayer } from './eventHandlers';
 import { createParticles } from './spawners';
 
 export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
@@ -25,20 +25,17 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
 
             const overlapThreshold = (state.player.width/2 + e.width/2) * 0.9;
             if (dist < overlapThreshold && e.attackCooldown <= 0 && state.player.invulnTimer <= 0) {
-                state.player.hp -= e.damage;
-                state.player.hitFlashTimer = 10;
+                // Use centralized damage function
+                damagePlayer(state, e.damage);
                 e.attackCooldown = 60;
-                state.camera.shake = 5;
-                state.player.combo = 0; 
             }
         }
         
         if (e.attackCooldown > 0) e.attackCooldown--;
         if (e.hitFlashTimer > 0) e.hitFlashTimer--;
-        
-        // Handle custom cooldowns
         if (e.swirlTimer && e.swirlTimer > 0) e.swirlTimer--;
 
+        // Bleed Processing (Existing)
         if (e.bleedStack && e.bleedTimer) {
              if (state.time % 30 === 0) {
                  const bleedDmg = e.bleedStack * (state.player.stats.damage * 0.2);
@@ -48,31 +45,22 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
              if (e.bleedTimer <= 0) e.bleedStack = 0;
         }
 
+        // Nanite Swarm Processing (New)
+        if (e.naniteStack && e.naniteTimer) {
+            if (state.time % 20 === 0) { // Ticks faster than bleed
+                const naniteDmg = e.naniteStack * (state.player.stats.damage * 0.1);
+                dealDamage(state, e, naniteDmg, false, true);
+                createParticles(state, e.x + Math.random()*10, e.y + Math.random()*10, 1, '#10b981'); // Green/Tech particles
+            }
+            e.naniteTimer--;
+            if (e.naniteTimer <= 0) e.naniteStack = 0;
+        }
+
         resolveMapCollision(e, state.dungeon);
     });
 
     state.enemies = state.enemies.filter(e => {
         if (e.hp <= 0) {
-            const daggerStack = state.player.inventory['ceremonial_dagger'];
-            if (daggerStack) {
-                for(let i=0; i<3 * daggerStack; i++) {
-                     state.projectiles.push({
-                        id: `proj-${Math.random()}`,
-                        type: EntityType.PROJECTILE,
-                        ownerId: state.player.id,
-                        x: e.x, y: e.y,
-                        width: 6, height: 6,
-                        vx: (Math.random()-0.5) * 10,
-                        vy: (Math.random()-0.5) * 10,
-                        damage: state.player.stats.damage * 1.5,
-                        color: '#a855f7',
-                        lifeTime: 100,
-                        isDead: false,
-                        piercing: false
-                     });
-                }
-            }
-
             state.player.shadowStack.push(e.enemyType);
             state.player.xp += e.xpValue;
             if (state.player.xp >= state.player.maxXp) {

@@ -5,26 +5,28 @@ import { createDungeon } from './dungeon';
 
 export const handleAttack = (state: GameState) => {
     const { player } = state;
-    // Prevent attacking while spinning
     if (player.isSpinning) return;
 
     const weapon = C.WEAPONS[player.currentWeapon];
     
+    // Apply Attack Speed
     const speedMod = player.stats.attackSpeed;
-    player.attackCooldown = Math.max(2, weapon.cooldown / speedMod);
+    // Apply Cooldown Reduction (Gravity Shredder Shards)
+    const cdr = Math.min(0.75, player.stats.cooldownReduction); // Cap at 75%
+    const baseCooldown = Math.max(2, weapon.cooldown / speedMod);
+    
+    player.attackCooldown = baseCooldown;
     player.maxAttackCooldown = player.attackCooldown;
     player.isAttacking = true;
-    player.swingHitList = []; // Reset hit list for new swing
+    player.swingHitList = []; 
 
     const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
     const dmgMult = dmgBuff ? 1.5 : 1.0;
     const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
 
     if (player.currentWeapon === WeaponType.SHADOW_BOW) {
-        // Updated Orbital Spawn Logic
-        // Radius matches the visual offset (18px) + offset from body center (-14px height, lower than before)
         const orbitRadius = 18;
-        const chestHeightOffset = 27; // Up from feet (Raised by 5px from 14 to 19)
+        const chestHeightOffset = 27; 
         
         const pCenterX = player.x + player.width/2;
         const pCenterY = player.y + player.height;
@@ -47,14 +49,16 @@ export const handleAttack = (state: GameState) => {
             isDead: false,
             renderStyle: 'SHADOW_ARROW'
         });
-        // Bow Fire Effect
-        createParticles(state, spawnX, spawnY, 5, '#d8b4fe', player.aimAngle);
+        // Oblivion Engine Check
+        if (player.inventory['oblivion_engine']) {
+             createParticles(state, spawnX, spawnY, 8, '#000000', player.aimAngle);
+        } else {
+             createParticles(state, spawnX, spawnY, 5, '#d8b4fe', player.aimAngle);
+        }
         return;
     }
 
-    // --- EXECUTIONER AXE (REAL-TIME HITBOX) ---
     if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
-        // We only set the state here. Collision is handled in updatePlayer frame-by-frame.
         return;
     }
 
@@ -83,7 +87,6 @@ export const handleAttack = (state: GameState) => {
                 e.vx += Math.cos(angleToEnemy) * 5;
                 e.vy += Math.sin(angleToEnemy) * 5;
                 
-                // Color particles based on weapon
                 createParticles(state, e.x, e.y, 3, weapon.color, angleToEnemy);
 
                 hitCount++;
@@ -112,8 +115,12 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
     const config = slot === 'PRIMARY' ? (C.ABILITIES as any)[abilityType] : C.WEAPONS[player.currentWeapon].secondary;
     if (!config) return;
 
-    if (slot === 'PRIMARY') player.abilityCooldown = config.cooldown;
-    else player.secondaryAbilityCooldown = config.cooldown;
+    // Apply Cooldown Reduction (Gravity Shredder Shards)
+    const cdr = Math.min(0.75, player.stats.cooldownReduction);
+    const cooldown = Math.ceil(config.cooldown * (1 - cdr));
+
+    if (slot === 'PRIMARY') player.abilityCooldown = cooldown;
+    else player.secondaryAbilityCooldown = cooldown;
 
     if (abilityType === AbilityType.SHADOW_CALL) {
         if (player.shadowStack.length === 0) return;
@@ -143,33 +150,28 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         createParticles(state, player.x, player.y, 10, '#ef4444');
         state.camera.shake = 4;
     } else if (abilityType === AbilityType.CURSED_DASH) {
-        // Replaces Whirling Flurry with Samurai Slash Dash
         player.isDashing = true;
-        player.isSlashDashing = true; // Flag for collision damage logic in player.ts
-        player.slashDashTimer = 15; // Duration of the dash
-        player.dashCooldown = config.cooldown;
-        player.invulnTimer = 15; // I-frames
+        player.isSlashDashing = true; 
+        player.slashDashTimer = 15; 
+        player.dashCooldown = cooldown;
+        player.invulnTimer = 15; 
         
-        // High Velocity
         player.vx = Math.cos(player.aimAngle) * 25;
         player.vy = Math.sin(player.aimAngle) * 25;
         
-        // Initial Burst
-        createParticles(state, player.x, player.y, 15, '#7c3aed'); // Purple
+        createParticles(state, player.x, player.y, 15, '#7c3aed'); 
         state.camera.shake = 10;
         
     } else if (abilityType === AbilityType.EXECUTIONER_SWIRL) {
-        // Activate Spin State
         player.isSpinning = true;
-        player.spinTimer = 180; // 3 seconds duration
+        player.spinTimer = 180; 
         player.spinTickTimer = 0;
         createParticles(state, player.x + player.width/2, player.y + player.height/2, 20, '#7f1d1d');
         state.camera.shake = 10;
 
     } else if (abilityType === AbilityType.PIERCING_VOLLEY) {
-        // Updated Orbital Spawn Logic for Volley
         const orbitRadius = 18;
-        const chestHeightOffset = 19; // Up from feet (Raised by 5px from 14 to 19)
+        const chestHeightOffset = 19; 
         
         const pCenterX = player.x + player.width/2;
         const pCenterY = player.y + player.height;
@@ -203,22 +205,142 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
         target.vy += (Math.random()-0.5) * 2;
     }
     
-    // Items Proc
-    if (!isDoT && state.player.inventory['hopoo_feather']) {
-        if (isCrit) {
-             state.player.hp = Math.min(state.player.hp + 5 * state.player.inventory['hopoo_feather'], state.player.maxHp);
-             spawnDamageNumber(state, state.player.x, state.player.y, 5 * state.player.inventory['hopoo_feather'], false, '#22c55e');
+    // --- ON HIT EFFECTS ---
+    if (!isDoT) {
+        const luck = state.player.stats.luck;
+
+        // 6. Blood Conduit: Heal 3 HP on hit
+        if (state.player.inventory['blood_conduit']) {
+            const heal = 3 * state.player.inventory['blood_conduit'];
+            state.player.hp = Math.min(state.player.hp + heal, state.player.maxHp);
+            // Visual indicator occasionally
+            if (Math.random() < 0.2) spawnDamageNumber(state, state.player.x, state.player.y, heal, false, '#22c55e');
+        }
+
+        // 7. Arc Repeater Node: Electric Pulse
+        const arcChance = 0.2 + (luck * 0.05);
+        if (state.player.inventory['arc_repeater'] && Math.random() < arcChance) {
+            const range = 150;
+            const dmg = state.player.stats.damage * 0.5 * state.player.inventory['arc_repeater'];
+            state.enemies.forEach(e => {
+                if (e.id !== target.id) {
+                    const d = Math.sqrt((e.x - target.x)**2 + (e.y - target.y)**2);
+                    if (d < range) {
+                        dealDamage(state, e, dmg, false, true); // Chain hit
+                        createParticles(state, e.x, e.y, 3, '#facc15');
+                        // Lightning line visual (particle based)
+                        const steps = 5;
+                        for(let i=0; i<steps; i++) {
+                            const lx = target.x + (e.x - target.x) * (i/steps);
+                            const ly = target.y + (e.y - target.y) * (i/steps);
+                            state.particles.push({
+                                id: `light-${Math.random()}`, type: EntityType.PARTICLE,
+                                x: lx, y: ly, width: 2, height: 2,
+                                vx: 0, vy: 0, color: '#facc15', isDead: false, lifeTime: 10, maxLifeTime: 10, startColor: '#facc15', endColor: '#facc15'
+                            });
+                        }
+                    }
+                }
+            });
+        }
+
+        // 8. Nanite Swarm Pod: Apply stacking DoT
+        if (state.player.inventory['nanite_pod']) {
+            const stacks = state.player.inventory['nanite_pod'];
+            if (!target.naniteStack) target.naniteStack = 0;
+            target.naniteStack += stacks;
+            target.naniteTimer = 180; // 3 seconds
+        }
+
+        // 11. Oblivion Engine: Void Implosion
+        if (state.player.inventory['oblivion_engine']) {
+            // Chance based or always? Legendary usually feels powerful. Let's say chance or cooldown.
+            // Description says "Attacks emit", implying on swing. But we check here for impact.
+            // Let's create an AoE explosion on hit.
+            if (Math.random() < 0.3 + (luck * 0.1)) {
+                createParticles(state, target.x, target.y, 15, '#000000');
+                const range = 80;
+                const dmg = state.player.stats.damage * 1.0;
+                state.enemies.forEach(e => {
+                    const d = Math.sqrt((e.x - target.x)**2 + (e.y - target.y)**2);
+                    if (d < range) {
+                        e.vx += (target.x - e.x) * 0.1; // Suck in
+                        e.vy += (target.y - e.y) * 0.1;
+                        dealDamage(state, e, dmg, false, true);
+                    }
+                });
+            }
         }
     }
 
     if (target.hp <= 0 && !target.isDead) {
-         // Death logic handled in enemy updater, but we trigger onKill effects here if needed
-         if (state.player.inventory['ceremonial_dagger']) {
-             // ... spawned in enemy updater
+         // --- ON KILL EFFECTS ---
+         
+         // 12. Spectral Choir
+         if (state.player.inventory['spectral_choir']) {
+             const count = state.player.inventory['spectral_choir'];
+             if (Math.random() < 0.2 * count) { // Chance to summon
+                 spawnEcho(state, target.x, target.y, 2); // Summon Tier 2 Echo
+                 createParticles(state, target.x, target.y, 10, '#22d3ee');
+             }
          }
     }
     
     spawnDamageNumber(state, target.x, target.y, amount, isCrit, isDoT ? '#fca5a5' : (isCrit ? '#fbbf24' : '#ef4444'));
+};
+
+// Centralized Player Damage Logic
+export const damagePlayer = (state: GameState, amount: number) => {
+    const { player } = state;
+    
+    // Carbon Stabilizer: Damage Reduction
+    let finalAmount = amount * (1 - player.stats.damageReduction);
+    finalAmount = Math.max(1, finalAmount); // Minimum 1 damage
+
+    // Berserker Cortex: Taking damage increases attack speed
+    if (player.inventory['berserker_cortex']) {
+        const stack = player.inventory['berserker_cortex'];
+        const duration = 180; // 3s
+        // Check if buff exists
+        const existing = player.activeBuffs.find(b => b.type === ItemType.BUFF_ATTACK_SPEED);
+        if (existing) {
+            existing.timer = duration;
+        } else {
+            // Apply temp buff - we need to handle this in stats recalculation or dynamic modifier
+            // Simplified: Add a buff that acts as a stat modifier
+            player.activeBuffs.push({
+                type: ItemType.BUFF_ATTACK_SPEED,
+                timer: duration,
+                value: 0.2 * stack // 20% AS per stack
+            });
+            player.stats.attackSpeed += 0.2 * stack;
+        }
+    }
+
+    player.hp -= finalAmount;
+    player.hitFlashTimer = 10;
+    state.camera.shake = 5;
+    player.combo = 0; 
+
+    // 14. Cataclysm Vein: Survive lethal damage
+    if (player.hp <= 0 && player.inventory['cataclysm_vein'] && !player.reviveUsed) {
+        player.hp = player.maxHp * 0.5; // Heal to 50%
+        player.reviveUsed = true;
+        player.invulnTimer = 120; // 2s Invuln
+        
+        // Explode
+        createParticles(state, player.x, player.y, 50, '#ef4444');
+        state.camera.shake = 20;
+        state.enemies.forEach(e => {
+            const d = Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2);
+            if (d < 300) {
+                dealDamage(state, e, 500, true); // Massive damage
+                e.vx += (e.x - player.x) * 0.5;
+                e.vy += (e.y - player.y) * 0.5;
+            }
+        });
+        spawnDamageNumber(state, player.x, player.y, 0, true, '#ef4444'); // "REVIVED"
+    }
 };
 
 export const nextFloor = (state: GameState) => {
