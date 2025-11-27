@@ -2,7 +2,7 @@ import { GameState, ItemType, WeaponType, EntityType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
 import { resolveMapCollision, rectIntersect } from './physics';
-import { createParticles, spawnEcho } from './spawners';
+import { createParticles } from './spawners';
 import { spawnDamageNumber } from './spawners';
 
 export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: number, y: number}) => {
@@ -15,6 +15,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
     const pCenterX = player.x + player.width/2;
     const pCenterY = player.y + player.height/2;
     
+    // Normal aiming only if not spinning (or allow slow aiming/fixed rotation)
     player.aimAngle = Math.atan2(worldMy - pCenterY, worldMx - pCenterX);
     
     if (!player.isSlashDashing) {
@@ -30,6 +31,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             const newWeapon = state.interactionItem.payload;
             player.currentWeapon = newWeapon;
             player.secondaryAbilityCooldown = 0;
+            // Reset special states if swapping weapon
             player.isSpinning = false;
             
             state.interactionItem.payload = player.currentWeapon;
@@ -50,22 +52,15 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         if (player.comboTimer <= 0) player.combo = 0;
     }
 
-    // Process Buffs
     player.activeBuffs = player.activeBuffs.filter(b => {
         b.timer--;
-        if (b.timer <= 0) {
-            // If Berserker buff expires, remove the attack speed bonus
-            if (b.type === ItemType.BUFF_ATTACK_SPEED) {
-                player.stats.attackSpeed -= b.value;
-            }
-            return false;
-        }
-        return true;
+        return b.timer > 0;
     });
 
     // --- SPECIAL ABILITY STATES ---
 
     if (player.isSpinning) {
+        // EXECUTIONER SWIRL LOGIC
         player.spinTimer--;
         
         const orbitRadius = 60;
@@ -78,7 +73,9 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
              createParticles(state, axeHeadX, axeHeadY, 2, '#7f1d1d', spinAngle + Math.PI/2);
         }
 
-        const hitboxRadius = 40; 
+        // CONTINUOUS COLLISION CHECK (Every Frame)
+        // Dynamic Hitbox at Axe Head
+        const hitboxRadius = 40; // Size of the axe head swing area
         const weaponConfig = C.WEAPONS[player.currentWeapon];
         
         let hitCount = 0;
@@ -86,14 +83,17 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         state.enemies.forEach(e => {
             const dist = Math.sqrt((e.x + e.width/2 - axeHeadX)**2 + (e.y + e.height/2 - axeHeadY)**2);
             
+            // Check collision + per-enemy swirl cooldown (prevents 60 hits/sec)
             if (dist < hitboxRadius && (!e.swirlTimer || e.swirlTimer <= 0)) {
                 const dmgMult = weaponConfig.secondary?.damageMult || 0.5;
                 const damage = player.stats.damage * dmgMult;
                 const isCrit = Math.random() < player.stats.critChance;
                 dealDamage(state, e, damage, isCrit);
                 
+                // Set throttle timer for this enemy (e.g., hit every 10 frames = 6 hits/sec)
                 e.swirlTimer = 10;
                 
+                // Knockback outward from player
                 const angle = Math.atan2(e.y - player.y, e.x - player.x);
                 e.vx += Math.cos(angle) * 4;
                 e.vy += Math.sin(angle) * 4;
@@ -105,6 +105,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
         if (hitCount > 0) state.camera.shake = 3;
 
+        // Movement Logic
         let dx = 0; let dy = 0;
         if (inputs.has('KeyW')) dy -= 1;
         if (inputs.has('KeyS')) dy += 1;
@@ -115,7 +116,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             const len = Math.sqrt(dx*dx + dy*dy);
             dx /= len; dy /= len;
         }
-        const speed = player.stats.speed * 0.8; 
+        const speed = player.stats.speed * 0.8; // Slight slow during spin
         player.vx += dx * speed * 0.2;
         player.vy += dy * speed * 0.2;
         player.vx *= C.FRICTION;
@@ -151,6 +152,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             player.vy *= 0.1;
         }
     } else if (!player.isDashing) {
+      // NORMAL MOVEMENT
       let dx = 0; let dy = 0;
       if (inputs.has('KeyW')) dy -= 1;
       if (inputs.has('KeyS')) dy += 1;
@@ -167,21 +169,28 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
       player.vx *= C.FRICTION;
       player.vy *= C.FRICTION;
 
+      // Handle Attack Logic
       if (player.attackCooldown > 0) {
         player.attackCooldown--;
         player.isAttacking = true;
 
+        const weapon = C.WEAPONS[player.currentWeapon];
+        // Animation Progress (0 to 1)
+        const progress = 1 - (player.attackCooldown / player.maxAttackCooldown);
+        
+        // Calculate Swing Angle (Sine Wave matching visual)
+        let swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
+
+        // FIX: Invert Swing Offset if facing left to ensure top-to-bottom swing
+        if (Math.abs(player.aimAngle) > Math.PI / 2) {
+            swingOffset *= -1;
+        }
+
+        const currentAngle = player.aimAngle + swingOffset;
+
+        // --- EXECUTIONER AXE REAL-TIME SWING LOGIC ---
         if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
-             const weapon = C.WEAPONS[player.currentWeapon];
-             const progress = 1 - (player.attackCooldown / player.maxAttackCooldown);
-             let swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-
-             if (Math.abs(player.aimAngle) > Math.PI / 2) {
-                 swingOffset *= -1;
-             }
-
-             const currentAngle = player.aimAngle + swingOffset;
-             const weaponRange = 60; 
+             const weaponRange = 60; // Distance of the hitbox center from player (matches visual handle length)
              const axeX = pCenterX + Math.cos(currentAngle) * weaponRange;
              const axeY = pCenterY + Math.sin(currentAngle) * weaponRange;
 
@@ -212,6 +221,68 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                      createParticles(state, e.x, e.y, 5, '#7f1d1d', pushAngle);
                      state.camera.shake = 8;
                      state.hitStop = C.HIT_STOP_HEAVY;
+                     
+                     player.swingHitList.push(e.id);
+                     player.combo++;
+                     player.comboTimer = C.COMBO_DECAY;
+                 }
+             });
+        }
+        // --- BLOOD BLADE & CURSED BLADE PRECISE HITBOX ---
+        else if (player.currentWeapon === WeaponType.BLOOD_BLADE || player.currentWeapon === WeaponType.CURSED_BLADE) {
+             // Define Origin Offset (matches rendering translate(facing * 10, 2))
+             const facing = Math.abs(player.aimAngle) > Math.PI / 2 ? -1 : 1;
+             const originX = pCenterX + facing * 10;
+             const originY = pCenterY; // Approx pivot height
+
+             // Define sampling points along the blade
+             const range = weapon.range;
+             const numPoints = 5;
+             const points = [];
+             
+             for(let i=1; i<=numPoints; i++) {
+                 const d = (range / numPoints) * i;
+                 points.push({
+                     x: originX + Math.cos(currentAngle) * d,
+                     y: originY + Math.sin(currentAngle) * d
+                 });
+             }
+
+             // Check enemies against these points
+             state.enemies.forEach(e => {
+                 if (player.swingHitList.includes(e.id)) return;
+
+                 // Enemy hitbox is roughly centered circle
+                 const ex = e.x + e.width/2;
+                 const ey = e.y + e.height/2;
+                 const eRadius = Math.max(e.width, e.height) / 2; // slightly generous hit circle
+
+                 let hit = false;
+                 // Check if any point on blade is inside enemy circle
+                 for(const p of points) {
+                     const dist = Math.sqrt((ex - p.x)**2 + (ey - p.y)**2);
+                     if (dist < eRadius + 5) { // +5 buffer for blade thickness
+                         hit = true;
+                         break;
+                     }
+                 }
+
+                 if (hit) {
+                     const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
+                     const dmgMult = dmgBuff ? 1.5 : 1.0;
+                     const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
+                     const baseDmg = player.stats.damage * weapon.damageMult;
+                     const finalDmg = baseDmg * dmgMult * comboMult;
+                     const isCrit = Math.random() < player.stats.critChance;
+
+                     dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
+                     
+                     const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
+                     e.vx += Math.cos(pushAngle) * 5;
+                     e.vy += Math.sin(pushAngle) * 5;
+                     
+                     createParticles(state, e.x, e.y, 3, weapon.color, pushAngle);
+                     state.camera.shake = 4;
                      
                      player.swingHitList.push(e.id);
                      player.combo++;

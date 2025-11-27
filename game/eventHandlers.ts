@@ -11,8 +11,8 @@ export const handleAttack = (state: GameState) => {
     
     // Apply Attack Speed
     const speedMod = player.stats.attackSpeed;
-    // Apply Cooldown Reduction (Gravity Shredder Shards)
-    const cdr = Math.min(0.75, player.stats.cooldownReduction); // Cap at 75%
+    // Apply Cooldown Reduction (Gravity Shredder Shards) - cap effective attack rate increase reasonable?
+    // Usually attack speed handles rate. CDR handles ability.
     const baseCooldown = Math.max(2, weapon.cooldown / speedMod);
     
     player.attackCooldown = baseCooldown;
@@ -58,49 +58,9 @@ export const handleAttack = (state: GameState) => {
         return;
     }
 
-    if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
-        return;
-    }
-
-    const cx = player.x + player.width/2;
-    const cy = player.y + player.height/2;
-    let hitCount = 0;
-
-    state.enemies.forEach(e => {
-        const ex = e.x + e.width/2;
-        const ey = e.y + e.height/2;
-        const dist = Math.sqrt((ex-cx)**2 + (ey-cy)**2);
-        
-        if (dist < weapon.range + e.width/2) {
-            const angleToEnemy = Math.atan2(ey - cy, ex - cx);
-            let angleDiff = angleToEnemy - player.aimAngle;
-            while (angleDiff > Math.PI) angleDiff -= Math.PI*2;
-            while (angleDiff < -Math.PI) angleDiff += Math.PI*2;
-            
-            if (Math.abs(angleDiff) < weapon.arc / 2) {
-                const baseDmg = player.stats.damage * weapon.damageMult;
-                const finalDmg = baseDmg * dmgMult * comboMult;
-                const isCrit = Math.random() < player.stats.critChance;
-                
-                dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
-                
-                e.vx += Math.cos(angleToEnemy) * 5;
-                e.vy += Math.sin(angleToEnemy) * 5;
-                
-                createParticles(state, e.x, e.y, 3, weapon.color, angleToEnemy);
-
-                hitCount++;
-                state.camera.shake = 6;
-                state.hitStop = C.HIT_STOP_LIGHT;
-            }
-        }
-    });
-
-    if (hitCount > 0) {
-        player.combo++;
-        player.comboTimer = C.COMBO_DECAY;
-        if (player.combo > player.maxCombo) player.maxCombo = player.combo;
-    }
+    // For all melee weapons (Axe, Swords, Katanas), we defer collision to updatePlayer loop
+    // to match the visual swing animation frame-by-frame.
+    return;
 };
 
 export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') => {
@@ -213,7 +173,6 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
         if (state.player.inventory['blood_conduit']) {
             const heal = 3 * state.player.inventory['blood_conduit'];
             state.player.hp = Math.min(state.player.hp + heal, state.player.maxHp);
-            // Visual indicator occasionally
             if (Math.random() < 0.2) spawnDamageNumber(state, state.player.x, state.player.y, heal, false, '#22c55e');
         }
 
@@ -226,9 +185,8 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
                 if (e.id !== target.id) {
                     const d = Math.sqrt((e.x - target.x)**2 + (e.y - target.y)**2);
                     if (d < range) {
-                        dealDamage(state, e, dmg, false, true); // Chain hit
+                        dealDamage(state, e, dmg, false, true); 
                         createParticles(state, e.x, e.y, 3, '#facc15');
-                        // Lightning line visual (particle based)
                         const steps = 5;
                         for(let i=0; i<steps; i++) {
                             const lx = target.x + (e.x - target.x) * (i/steps);
@@ -249,14 +207,11 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
             const stacks = state.player.inventory['nanite_pod'];
             if (!target.naniteStack) target.naniteStack = 0;
             target.naniteStack += stacks;
-            target.naniteTimer = 180; // 3 seconds
+            target.naniteTimer = 180; 
         }
 
         // 11. Oblivion Engine: Void Implosion
         if (state.player.inventory['oblivion_engine']) {
-            // Chance based or always? Legendary usually feels powerful. Let's say chance or cooldown.
-            // Description says "Attacks emit", implying on swing. But we check here for impact.
-            // Let's create an AoE explosion on hit.
             if (Math.random() < 0.3 + (luck * 0.1)) {
                 createParticles(state, target.x, target.y, 15, '#000000');
                 const range = 80;
@@ -264,7 +219,7 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
                 state.enemies.forEach(e => {
                     const d = Math.sqrt((e.x - target.x)**2 + (e.y - target.y)**2);
                     if (d < range) {
-                        e.vx += (target.x - e.x) * 0.1; // Suck in
+                        e.vx += (target.x - e.x) * 0.1;
                         e.vy += (target.y - e.y) * 0.1;
                         dealDamage(state, e, dmg, false, true);
                     }
@@ -275,12 +230,11 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
 
     if (target.hp <= 0 && !target.isDead) {
          // --- ON KILL EFFECTS ---
-         
          // 12. Spectral Choir
          if (state.player.inventory['spectral_choir']) {
              const count = state.player.inventory['spectral_choir'];
-             if (Math.random() < 0.2 * count) { // Chance to summon
-                 spawnEcho(state, target.x, target.y, 2); // Summon Tier 2 Echo
+             if (Math.random() < 0.2 * count) { 
+                 spawnEcho(state, target.x, target.y, 2); 
                  createParticles(state, target.x, target.y, 10, '#22d3ee');
              }
          }
@@ -289,29 +243,24 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
     spawnDamageNumber(state, target.x, target.y, amount, isCrit, isDoT ? '#fca5a5' : (isCrit ? '#fbbf24' : '#ef4444'));
 };
 
-// Centralized Player Damage Logic
 export const damagePlayer = (state: GameState, amount: number) => {
     const { player } = state;
     
-    // Carbon Stabilizer: Damage Reduction
     let finalAmount = amount * (1 - player.stats.damageReduction);
-    finalAmount = Math.max(1, finalAmount); // Minimum 1 damage
+    finalAmount = Math.max(1, finalAmount); 
 
-    // Berserker Cortex: Taking damage increases attack speed
+    // Berserker Cortex
     if (player.inventory['berserker_cortex']) {
         const stack = player.inventory['berserker_cortex'];
-        const duration = 180; // 3s
-        // Check if buff exists
+        const duration = 180; 
         const existing = player.activeBuffs.find(b => b.type === ItemType.BUFF_ATTACK_SPEED);
         if (existing) {
             existing.timer = duration;
         } else {
-            // Apply temp buff - we need to handle this in stats recalculation or dynamic modifier
-            // Simplified: Add a buff that acts as a stat modifier
             player.activeBuffs.push({
                 type: ItemType.BUFF_ATTACK_SPEED,
                 timer: duration,
-                value: 0.2 * stack // 20% AS per stack
+                value: 0.2 * stack 
             });
             player.stats.attackSpeed += 0.2 * stack;
         }
@@ -322,24 +271,23 @@ export const damagePlayer = (state: GameState, amount: number) => {
     state.camera.shake = 5;
     player.combo = 0; 
 
-    // 14. Cataclysm Vein: Survive lethal damage
+    // 14. Cataclysm Vein
     if (player.hp <= 0 && player.inventory['cataclysm_vein'] && !player.reviveUsed) {
-        player.hp = player.maxHp * 0.5; // Heal to 50%
+        player.hp = player.maxHp * 0.5; 
         player.reviveUsed = true;
-        player.invulnTimer = 120; // 2s Invuln
+        player.invulnTimer = 120; 
         
-        // Explode
         createParticles(state, player.x, player.y, 50, '#ef4444');
         state.camera.shake = 20;
         state.enemies.forEach(e => {
             const d = Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2);
             if (d < 300) {
-                dealDamage(state, e, 500, true); // Massive damage
+                dealDamage(state, e, 500, true); 
                 e.vx += (e.x - player.x) * 0.5;
                 e.vy += (e.y - player.y) * 0.5;
             }
         });
-        spawnDamageNumber(state, player.x, player.y, 0, true, '#ef4444'); // "REVIVED"
+        spawnDamageNumber(state, player.x, player.y, 0, true, '#ef4444'); 
     }
 };
 
