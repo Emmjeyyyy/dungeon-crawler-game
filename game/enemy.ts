@@ -3,7 +3,7 @@ import { GameState, EnemyType, BossState, EntityType, Enemy } from '../types';
 import * as C from '../constants';
 import { resolveMapCollision, rectIntersect } from './physics';
 import { dealDamage, damagePlayer } from './eventHandlers';
-import { createParticles, spawnDamageNumber } from './spawners';
+import { createParticles } from './spawners';
 
 const updateKurogami = (state: GameState, boss: Enemy) => {
     // Initialization

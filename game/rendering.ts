@@ -19,9 +19,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const cArmor = '#1e293b'; // Dark Slate
     const cArmorLight = '#334155';
     const cGold = '#fbbf24'; // Amber 400
-    const cCloth = '#b91c1c'; // Red
     const cBone = '#e2e8f0'; // Slate 200
-    const cFlameCore = '#60a5fa'; // Blue
     const cFlameOut = '#3b82f6'; 
     const cVoid = '#4c1d95'; // Violet 900 (Aura)
 
