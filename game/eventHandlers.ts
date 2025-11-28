@@ -1,4 +1,5 @@
-import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemType } from '../types';
+
+import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemType, BossState } from '../types';
 import * as C from '../constants';
 import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
 import { createDungeon } from './dungeon';
@@ -98,16 +99,31 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         state.camera.shake = 8;
         player.shadowStack = [];
     } else if (abilityType === AbilityType.BLOOD_WAVE) {
+        // Visuals: Trigger an attack swing to match the wave
+        player.isAttacking = true;
+        player.attackCooldown = 20;
+        player.maxAttackCooldown = 20;
+        
+        // Align spawn with visual weapon position (Chest height + Swing Radius)
+        const pCenterX = player.x + player.width/2;
+        const pVisualY = player.y + player.height - 14; // Approx visual chest height
+        const offset = 24; // Distance out from body (Blade tip)
+
+        const spawnX = pCenterX + Math.cos(player.aimAngle) * offset;
+        const spawnY = pVisualY + Math.sin(player.aimAngle) * offset;
+        const pSize = 30;
+
         state.projectiles.push({
             id: `proj-${Math.random()}`, type: EntityType.PROJECTILE, ownerId: player.id,
-            x: player.x + player.width/2, y: player.y + player.height/2,
-            width: 30, height: 30,
+            x: spawnX - pSize/2, 
+            y: spawnY - pSize/2,
+            width: pSize, height: pSize,
             vx: Math.cos(player.aimAngle) * 12, vy: Math.sin(player.aimAngle) * 12,
             damage: player.stats.damage * (config.damageMult || 2.0),
             color: config.color, lifeTime: 30, isDead: false,
             piercing: true, renderStyle: 'WAVE'
         });
-        createParticles(state, player.x, player.y, 10, '#ef4444');
+        createParticles(state, spawnX, spawnY, 10, '#ef4444', player.aimAngle);
         state.camera.shake = 4;
     } else if (abilityType === AbilityType.CURSED_DASH) {
         player.isDashing = true;
@@ -158,11 +174,21 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
 };
 
 export const dealDamage = (state: GameState, target: Enemy, amount: number, isCrit: boolean, isDoT = false) => {
+    // Boss Invulnerability during phase transition
+    if (target.bossState === BossState.PHASE_TRANSITION) return;
+
     target.hp -= amount;
+    
+    // Prevent Phase 1 boss from dying before transition
+    if (target.enemyType === EnemyType.BOSS && target.bossPhase === 1 && target.hp <= target.maxHp * 0.5) {
+        target.hp = target.maxHp * 0.5; // Cap at 50% so logic in updateKurogami catches it
+    }
+
     if (!isDoT) {
         target.hitFlashTimer = 5;
-        target.vx += (Math.random()-0.5) * 2;
-        target.vy += (Math.random()-0.5) * 2;
+        // Subtle jitter instead of strong displacement
+        target.vx += (Math.random()-0.5) * 0.5;
+        target.vy += (Math.random()-0.5) * 0.5;
     }
     
     // --- ON HIT EFFECTS ---
@@ -244,6 +270,9 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
 };
 
 export const damagePlayer = (state: GameState, amount: number) => {
+    // God Mode Cheat
+    if (state.cheats.godMode) return;
+
     const { player } = state;
     
     let finalAmount = amount * (1 - player.stats.damageReduction);

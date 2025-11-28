@@ -34,18 +34,31 @@ export const createTestDungeon = (): Dungeon => {
 };
 
 export const createDungeon = (floor: number): Dungeon => {
-  const width = 60;
-  const height = 60;
+  const width = 64; // Slightly larger map
+  const height = 64;
   const grid: TileType[][] = Array(height).fill(null).map(() => Array(width).fill(TileType.VOID));
   const rooms: Room[] = [];
 
-  const roomCount = 10 + Math.floor(floor * 0.5);
+  const roomCount = 8 + Math.floor(floor * 0.5);
   
   for (let i = 0; i < roomCount; i++) {
-    const w = Math.floor(Math.random() * 8) + 8;
-    const h = Math.floor(Math.random() * 8) + 8;
-    const x = Math.floor(Math.random() * (width - w - 2)) + 1;
-    const y = Math.floor(Math.random() * (height - h - 2)) + 1;
+    const roll = Math.random();
+    let w, h;
+
+    // 1. Varied Room Sizes
+    if (roll < 0.2) { // Treasure / Small Room
+        w = Math.floor(Math.random() * 4) + 6;
+        h = Math.floor(Math.random() * 4) + 6;
+    } else if (roll < 0.7) { // Standard Room
+        w = Math.floor(Math.random() * 6) + 10;
+        h = Math.floor(Math.random() * 6) + 10;
+    } else { // Large Hall / Arena
+        w = Math.floor(Math.random() * 8) + 16;
+        h = Math.floor(Math.random() * 8) + 16;
+    }
+
+    const x = Math.floor(Math.random() * (width - w - 4)) + 2;
+    const y = Math.floor(Math.random() * (height - h - 4)) + 2;
 
     const newRoom: Room = { 
         id: `room-${i}`,
@@ -55,9 +68,12 @@ export const createDungeon = (floor: number): Dungeon => {
         doorTiles: []
     };
     
+    // 2. Padding to prevent awkward merges
     let overlap = false;
+    const padding = 4;
     for (const r of rooms) {
-      if (x < r.x + r.width + 2 && x + w + 2 > r.x && y < r.y + r.height + 2 && y + h + 2 > r.y) {
+      if (x < r.x + r.width + padding && x + w + padding > r.x && 
+          y < r.y + r.height + padding && y + h + padding > r.y) {
         overlap = true;
         break;
       }
@@ -78,9 +94,18 @@ export const createDungeon = (floor: number): Dungeon => {
         const cx2 = Math.floor(newRoom.x + newRoom.width/2);
         const cy2 = Math.floor(newRoom.y + newRoom.height/2);
 
+        // 3. Wider Corridors (2 tiles wide)
         const carve = (tx: number, ty: number) => {
-            if (grid[ty]?.[tx] === TileType.VOID || grid[ty]?.[tx] === TileType.WALL) {
-                grid[ty][tx] = TileType.FLOOR;
+            for(let oy=0; oy<2; oy++) {
+                for(let ox=0; ox<2; ox++) {
+                    const gx = tx+ox;
+                    const gy = ty+oy;
+                    if (gx >= 0 && gx < width && gy >= 0 && gy < height) {
+                        if (grid[gy][gx] === TileType.VOID || grid[gy][gx] === TileType.WALL) {
+                            grid[gy][gx] = TileType.FLOOR;
+                        }
+                    }
+                }
             }
         };
 
@@ -95,15 +120,18 @@ export const createDungeon = (floor: number): Dungeon => {
     }
   }
 
+  // Door Generation
   for(const room of rooms) {
       for(let x = room.x - 1; x <= room.x + room.width; x++) {
           for(let y = room.y - 1; y <= room.y + room.height; y++) {
               if (x >= 0 && x < width && y >= 0 && y < height) {
                   const isPerimeter = x === room.x - 1 || x === room.x + room.width || y === room.y - 1 || y === room.y + room.height;
+                  // Only place doors if it connects to a corridor floor
                   if (grid[y][x] === TileType.FLOOR && isPerimeter) {
                       grid[y][x] = TileType.DOOR_OPEN;
                       room.doorTiles.push({x, y});
                   } else if (grid[y][x] === TileType.VOID) {
+                      // Initial wall pass
                       grid[y][x] = TileType.WALL;
                   }
               }
@@ -111,6 +139,7 @@ export const createDungeon = (floor: number): Dungeon => {
       }
   }
 
+  // Global Wall Pass - Fill gaps around all floor tiles
   for(let y=0; y<height; y++) {
     for(let x=0; x<width; x++) {
         if (grid[y][x] === TileType.VOID) {
@@ -168,6 +197,38 @@ const activateRoom = (state: GameState, room: Room) => {
     room.isActive = true;
     for(const t of room.doorTiles) {
         state.dungeon.grid[t.y][t.x] = TileType.DOOR_CLOSED;
+    }
+
+    // BOSS SPAWN LOGIC (Every 5th Floor or similar logic)
+    // For now, let's just make floor 5 a boss floor
+    if (state.dungeon.floor % 5 === 0 && room.id === state.dungeon.portalRoomId) {
+        // Only spawn boss in the last room of the 5th floor
+        const cx = (room.x + room.width/2) * C.TILE_SIZE;
+        const cy = (room.y + room.height/2) * C.TILE_SIZE;
+        
+        state.enemies.push({
+            id: `boss-kurogami`,
+            type: EntityType.ENEMY,
+            enemyType: EnemyType.BOSS,
+            x: cx - 32, y: cy - 32,
+            width: 64, height: 64, // Bigger hitbox
+            vx: 0, vy: 0,
+            facingX: 1, facingY: 0,
+            color: C.COLORS.enemyBoss,
+            isDead: false,
+            hp: 2000 + (state.dungeon.floor * 100), 
+            maxHp: 2000 + (state.dungeon.floor * 100),
+            damage: 25,
+            attackCooldown: 0,
+            maxAttackCooldown: 60,
+            targetId: null,
+            xpValue: 1000,
+            agroRange: 9999,
+            hitFlashTimer: 0,
+            scale: 3, // Visual Scale
+            bossPhase: 1
+        });
+        return;
     }
 
     const count = 2 + Math.floor(state.dungeon.floor) + Math.floor(Math.random() * 3);

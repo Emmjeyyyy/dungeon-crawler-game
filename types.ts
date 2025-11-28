@@ -1,3 +1,4 @@
+
 export enum EntityType {
   PLAYER = 'PLAYER',
   ENEMY = 'ENEMY',
@@ -18,6 +19,16 @@ export enum EnemyType {
   ELITE = 'ELITE',       
   MYSTIC = 'MYSTIC',     
   BOSS = 'BOSS'
+}
+
+export enum BossState {
+  IDLE = 'IDLE',
+  CHARGING = 'CHARGING', // Telegraphing
+  ATTACKING = 'ATTACKING', // Active Hitbox
+  DASHING = 'DASHING',
+  CASTING = 'CASTING',
+  RECOVERING = 'RECOVERING',
+  PHASE_TRANSITION = 'PHASE_TRANSITION'
 }
 
 export enum ItemType {
@@ -187,6 +198,12 @@ export interface Enemy extends Entity {
   naniteStack?: number; // New DoT
   naniteTimer?: number;
   swirlTimer?: number; 
+  
+  // Boss Specific
+  bossState?: BossState;
+  bossPhase?: number;
+  bossTimer?: number;
+  bossSubTimer?: number;
 }
 
 export interface Echo extends Entity {
@@ -205,7 +222,7 @@ export interface Projectile extends Entity {
   ownerId: string;
   lifeTime: number;
   piercing?: boolean;
-  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER' | 'SHADOW_ARROW' | 'VOID_ORB'; 
+  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER' | 'SHADOW_ARROW' | 'VOID_ORB' | 'SPECTRAL_BLADE' | 'TOMBSTONE_ZONE'; 
 }
 
 export interface Particle extends Entity {
@@ -213,6 +230,7 @@ export interface Particle extends Entity {
   maxLifeTime: number;
   startColor: string;
   endColor: string;
+  angle?: number;
 }
 
 export interface Item extends Entity {
@@ -272,4 +290,9 @@ export interface GameState {
   isPaused: boolean;
   isTestMode: boolean;
   pendingLevelUp: boolean;
+
+  cheats: {
+      godMode: boolean;
+      noCooldowns: boolean;
+  };
 }

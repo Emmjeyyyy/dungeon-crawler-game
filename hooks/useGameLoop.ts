@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { GameState, ItemType, WeaponType, AbilityType, Item, Inventory, EntityType, EnemyType } from '../types';
 import * as stateManager from '../game/state';
@@ -26,7 +27,8 @@ export const useGameLoop = (
     secondaryAbility: null as AbilityType | null, secondaryAbilityCooldown: 0,
     combo: 0, activeBuffs: [] as {type: ItemType, timer: number}[],
     shadowStackCount: 0, interactionItem: null as Item | null,
-    inventory: {} as Inventory, currentWeapon: WeaponType.BLOOD_BLADE
+    inventory: {} as Inventory, currentWeapon: WeaponType.BLOOD_BLADE,
+    cheats: { godMode: false, noCooldowns: false }
   });
 
   const togglePause = useCallback(() => {
@@ -115,7 +117,8 @@ export const useGameLoop = (
         shadowStackCount: state.player.shadowStack.length,
         interactionItem: state.interactionItem,
         inventory: state.player.inventory,
-        currentWeapon: state.player.currentWeapon
+        currentWeapon: state.player.currentWeapon,
+        cheats: state.cheats
     });
 
   }, [onLevelUp]);
@@ -218,8 +221,24 @@ export const useGameLoop = (
       onLevelUp();
   };
 
+  const debugToggleGodMode = () => {
+      const state = gameState.current;
+      state.cheats.godMode = !state.cheats.godMode;
+      // UI state updates in next tick
+  };
+
+  const debugToggleNoCooldowns = () => {
+      const state = gameState.current;
+      state.cheats.noCooldowns = !state.cheats.noCooldowns;
+  };
+
+  const debugAddItem = (itemId: string) => {
+      applyUpgrade(itemId);
+  }
+
   return { 
       uiState, applyUpgrade, restartGame, togglePause, enterTestMode,
-      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp, debugReset
+      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp, debugReset,
+      debugToggleGodMode, debugToggleNoCooldowns, debugAddItem
   };
 };

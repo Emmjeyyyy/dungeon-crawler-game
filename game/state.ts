@@ -1,3 +1,4 @@
+
 import { GameState, Player, WeaponType, AbilityType, EntityType } from '../types';
 import * as C from '../constants';
 import { createDungeon, createTestDungeon } from './dungeon';
@@ -95,6 +96,7 @@ export const createInitialState = (): GameState => {
     camera: { x: camX, y: camY, shake: 0 },
     score: 0, time: 0, timeScale: 1.0,
     hitStop: 0, isGameOver: false, isPaused: false, isTestMode: false, pendingLevelUp: false,
+    cheats: { godMode: false, noCooldowns: false }
   };
 };
 
@@ -141,5 +143,6 @@ export const createTestState = (): GameState => {
     camera: { x: camX, y: camY, shake: 0 },
     score: 0, time: 0, timeScale: 1.0,
     hitStop: 0, isGameOver: false, isPaused: false, isTestMode: true, pendingLevelUp: false,
+    cheats: { godMode: false, noCooldowns: false }
   };
 };

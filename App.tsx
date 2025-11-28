@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useCallback } from 'react';
 import { useGameLoop } from './hooks/useGameLoop';
 import GameCanvas from './components/GameCanvas';
@@ -16,7 +17,8 @@ const App: React.FC = () => {
   
   const { 
       uiState, applyUpgrade, restartGame, togglePause, enterTestMode,
-      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp, debugReset
+      debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp, debugReset,
+      debugToggleGodMode, debugToggleNoCooldowns, debugAddItem
   } = useGameLoop(canvasRef, onLevelUp);
 
   const handleStart = () => {
@@ -60,6 +62,10 @@ const App: React.FC = () => {
                 onSetWeapon={debugSetWeapon}
                 onLevelUp={debugTriggerLevelUp}
                 onReset={debugReset}
+                cheats={uiState.cheats}
+                onToggleGodMode={debugToggleGodMode}
+                onToggleNoCooldowns={debugToggleNoCooldowns}
+                onAddItem={debugAddItem}
             />
         )}
 

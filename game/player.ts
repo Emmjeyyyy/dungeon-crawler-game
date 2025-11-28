@@ -1,3 +1,4 @@
+
 import { GameState, ItemType, WeaponType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
@@ -6,6 +7,15 @@ import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
 
 export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: number, y: number}) => {
     const { player, dungeon } = state;
+
+    // Cheat: No Cooldowns
+    if (state.cheats.noCooldowns) {
+        player.attackCooldown = 0;
+        player.abilityCooldown = 0;
+        player.secondaryAbilityCooldown = 0;
+        player.dashCooldown = 0;
+        player.interactionCooldown = 0;
+    }
 
     const mx = mouse.x;
     const my = mouse.y;
@@ -92,10 +102,10 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                 // Set throttle timer for this enemy (e.g., hit every 10 frames = 6 hits/sec)
                 e.swirlTimer = 10;
                 
-                // Knockback outward from player
+                // Knockback outward from player (Reduced for fluidity)
                 const angle = Math.atan2(e.y - player.y, e.x - player.x);
-                e.vx += Math.cos(angle) * 4;
-                e.vy += Math.sin(angle) * 4;
+                e.vx += Math.cos(angle) * 1.5;
+                e.vy += Math.sin(angle) * 1.5;
                 
                 createParticles(state, e.x, e.y, 3, '#7f1d1d');
                 hitCount++;
@@ -138,9 +148,11 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                 dealDamage(state, e, damage, true);
                 createParticles(state, e.x, e.y, 8, '#ffffff');
                 state.camera.shake = 6;
-                state.hitStop = 2;
-                e.vx += player.vx * 0.5;
-                e.vy += player.vy * 0.5;
+                
+                // Removed HitStop
+                // Reduced push force
+                e.vx += player.vx * 0.1; 
+                e.vy += player.vy * 0.1;
                 state.echoes.forEach(echo => echo.targetId = e.id);
             }
         });
@@ -223,13 +235,15 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
                      dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
                      
+                     // Significantly reduced knockback
                      const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
-                     e.vx += Math.cos(pushAngle) * 8;
-                     e.vy += Math.sin(pushAngle) * 8;
+                     e.vx += Math.cos(pushAngle) * 3; 
+                     e.vy += Math.sin(pushAngle) * 3;
                      
                      createParticles(state, e.x, e.y, 5, '#7f1d1d', pushAngle);
                      state.camera.shake = 8;
-                     state.hitStop = C.HIT_STOP_HEAVY;
+                     
+                     // Removed HitStop
                      
                      player.swingHitList.push(e.id);
                      player.combo++;
@@ -279,9 +293,10 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
                      dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
                      
+                     // Significantly reduced knockback
                      const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
-                     e.vx += Math.cos(pushAngle) * 5;
-                     e.vy += Math.sin(pushAngle) * 5;
+                     e.vx += Math.cos(pushAngle) * 1.5;
+                     e.vy += Math.sin(pushAngle) * 1.5;
                      
                      createParticles(state, e.x, e.y, 3, weapon.color, pushAngle);
                      state.camera.shake = 4;
