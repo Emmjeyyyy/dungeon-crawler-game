@@ -10,13 +10,12 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const timer = boss.bossTimer || 0;
 
     // --- COLOR PALETTE (Regal & Dead) ---
-    const cArmorDark = '#020617'; // Abyss
-    const cArmorMid = '#1e293b';  // Slate 800
-    const cArmorLight = '#334155'; // Slate 700
-    const cBone = '#e2e8f0';      // White Bone
-    const cBoneShadow = '#94a3b8'; // Shadow Bone
-    const cGold = '#d97706';      // Dark Amber
-    const cGoldHighlight = '#fbbf24'; // Bright Amber
+    const cArmorDark = '#1e293b'; // Slate 800 (Was #020617 Abyss - Invisible)
+    const cArmorMid = '#334155';  // Slate 700
+    // cArmorLight and cGoldHighlight removed to fix TS unused vars error
+    const cBone = '#e2e8f0';      
+    const cBoneShadow = '#94a3b8'; 
+    const cGold = '#d97706';      
     const cCloth = isP2 ? '#4c1d95' : '#7f1d1d'; // Deep Violet or Blood Red
     const cGlow = isP2 ? '#a855f7' : '#ef4444';  // Neon Purple or Red
     const cBlade = isP2 ? '#818cf8' : '#cbd5e1'; // Spectral or Steel
@@ -30,7 +29,8 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const isCharging = state === BossState.CHARGING || state === BossState.CASTING;
     const shakeAmt = isCharging ? (Math.random() - 0.5) * 2 : 0;
     
-    ctx.translate(shakeAmt, shakeAmt + float);
+    // Fixed vertical offset to align feet to ground (approx 14px up)
+    ctx.translate(shakeAmt, shakeAmt + float - 14);
 
     // --- AURA (Phase 2 Only) ---
     if (isP2) {
@@ -61,7 +61,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const walkCycle = isMoving ? Math.sin(time * 0.15) : 0;
 
     // HAKAMA (Pants) - Dark, flowing
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = '#0f172a'; // Pants remain dark Slate 900
     ctx.beginPath();
     ctx.moveTo(0, -5);
     ctx.lineTo(-stanceW - 4, legLength); // Left leg flare
@@ -75,7 +75,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
         ctx.save();
         ctx.translate(xOffset, yOffset);
         // Shin Guard
-        ctx.fillStyle = cArmorMid;
+        ctx.fillStyle = cArmorMid; // Updated color
         ctx.fillRect(-5, 0, 10, 14);
         // Gold Detail
         ctx.fillStyle = cGold;
@@ -97,7 +97,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
         ctx.save();
         ctx.translate(x + sway, 0);
         // Main Plate
-        ctx.fillStyle = cArmorDark;
+        ctx.fillStyle = cArmorDark; // Updated color
         ctx.fillRect(0, 0, 12, 16);
         // Lacing
         ctx.fillStyle = cCloth;
@@ -110,12 +110,26 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
 
     ctx.restore();
 
-    // --- TORSO ---
+    // --- TORSO GROUP ---
     const torsoY = -22 + breath * 1.5;
     ctx.translate(0, torsoY);
 
+    // FIXED: Draw Cape BEFORE Torso (Behind)
+    ctx.save();
+    ctx.translate(0, -14);
+    ctx.fillStyle = cCloth;
+    const capeSway = Math.sin(time * 0.1) * 5;
+    ctx.beginPath();
+    ctx.moveTo(-10, 0);
+    ctx.lineTo(-25 + capeSway, 35); // Left point
+    ctx.lineTo(0, 25);
+    ctx.lineTo(25 + capeSway, 35); // Right point
+    ctx.lineTo(10, 0);
+    ctx.fill();
+    ctx.restore();
+
     // Do (Breastplate) - Ribcage Design
-    ctx.fillStyle = cArmorDark;
+    ctx.fillStyle = cArmorDark; // Updated color
     ctx.beginPath();
     ctx.moveTo(-14, 10); ctx.lineTo(14, 10); // Waist
     ctx.lineTo(18, -14); ctx.lineTo(-18, -14); // Shoulder line
@@ -131,20 +145,6 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.fillRect(-2, -12, 4, 16); // Spine
     ctx.globalAlpha = 1.0;
 
-    // --- CAPE / MANTLE ---
-    ctx.save();
-    ctx.translate(0, -14);
-    ctx.fillStyle = cCloth;
-    const capeSway = Math.sin(time * 0.1) * 5;
-    ctx.beginPath();
-    ctx.moveTo(-10, 0);
-    ctx.lineTo(-25 + capeSway, 35); // Left point
-    ctx.lineTo(0, 25);
-    ctx.lineTo(25 + capeSway, 35); // Right point
-    ctx.lineTo(10, 0);
-    ctx.fill();
-    ctx.restore();
-
     // --- SHOULDERS (O-Sode) ---
     // Massive, boxy, intimidating
     const drawShoulder = (isLeft: boolean) => {
@@ -154,7 +154,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
         ctx.rotate(dir * Math.PI * 0.05); // Slight flair
         
         // Main Shield
-        ctx.fillStyle = cArmorMid;
+        ctx.fillStyle = cArmorMid; // Updated color
         ctx.fillRect(-8, 0, 16, 24);
         
         // Gold Crest
@@ -176,7 +176,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.translate(0, -18);
 
     // Neck Guard (Shikoro)
-    ctx.fillStyle = cArmorDark;
+    ctx.fillStyle = cArmorDark; // Updated color
     ctx.beginPath(); ctx.arc(0, 2, 12, Math.PI, 0); ctx.fill();
 
     // Skull Face
@@ -206,7 +206,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
 
     // Helmet (Kabuto)
     ctx.translate(0, -6);
-    ctx.fillStyle = cArmorDark;
+    ctx.fillStyle = cArmorDark; // Updated color
     ctx.beginPath(); ctx.arc(0, 0, 10, Math.PI, 0); ctx.fill(); // Dome
     ctx.fillRect(-10, 0, 20, 4); // Rim
     
@@ -258,10 +258,10 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.rotate(rightArmAngle);
     
     // Upper Arm
-    ctx.fillStyle = cArmorMid;
+    ctx.fillStyle = cArmorMid; // Updated color
     ctx.fillRect(-4, 0, 8, 14);
     // Forearm (Kote)
-    ctx.fillStyle = cArmorDark;
+    ctx.fillStyle = cArmorDark; // Updated color
     ctx.fillRect(-5, 12, 10, 12);
     // Gold Trim
     ctx.fillStyle = cGold;
@@ -307,10 +307,10 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.rotate(leftArmAngle);
     
     // Upper
-    ctx.fillStyle = cArmorMid;
+    ctx.fillStyle = cArmorMid; // Updated color
     ctx.fillRect(-4, 0, 8, 14);
     // Forearm
-    ctx.fillStyle = cArmorDark;
+    ctx.fillStyle = cArmorDark; // Updated color
     ctx.fillRect(-5, 12, 10, 12);
     
     // Hand / Magic
