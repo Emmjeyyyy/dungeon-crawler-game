@@ -1,161 +1,333 @@
 
+
 import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType, BossState } from '../types';
 import * as C from '../constants';
 
 const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) => {
-    // Boss Scale handled in drawCharacter wrapper, here we draw relative to 0,0
-    // But wrapper does uniform scale. Boss needs specific detail scale.
-    // Boss drawing area is roughly -20 to +20.
-
     const phase = boss.bossPhase || 1;
     const isP2 = phase === 2;
-    const isCharging = boss.bossState === BossState.CHARGING || boss.bossState === BossState.CASTING;
-    const isAttacking = boss.bossState === BossState.ATTACKING;
-    const shake = isCharging ? (Math.random() - 0.5) * 2 : 0;
+    const state = boss.bossState || BossState.IDLE;
+    const timer = boss.bossTimer || 0;
 
-    ctx.translate(shake, shake);
+    // --- COLOR PALETTE (Regal & Dead) ---
+    const cArmorDark = '#020617'; // Abyss
+    const cArmorMid = '#1e293b';  // Slate 800
+    const cArmorLight = '#334155'; // Slate 700
+    const cBone = '#e2e8f0';      // White Bone
+    const cBoneShadow = '#94a3b8'; // Shadow Bone
+    const cGold = '#d97706';      // Dark Amber
+    const cGoldHighlight = '#fbbf24'; // Bright Amber
+    const cCloth = isP2 ? '#4c1d95' : '#7f1d1d'; // Deep Violet or Blood Red
+    const cGlow = isP2 ? '#a855f7' : '#ef4444';  // Neon Purple or Red
+    const cBlade = isP2 ? '#818cf8' : '#cbd5e1'; // Spectral or Steel
 
-    // -- COLORS --
-    const cArmor = '#1e293b'; // Dark Slate
-    const cArmorLight = '#334155';
-    const cGold = '#fbbf24'; // Amber 400
-    const cBone = '#e2e8f0'; // Slate 200
-    const cFlameOut = '#3b82f6'; 
-    const cVoid = '#4c1d95'; // Violet 900 (Aura)
+    // --- ANIMATION CALCULATIONS ---
+    const breath = Math.sin(time * 0.05);
+    const heavyBreath = Math.sin(time * 0.05 + Math.PI); // Offset
+    const float = isP2 ? Math.sin(time * 0.1) * 2 : 0;
+    
+    // Shake / Rage effect
+    const isCharging = state === BossState.CHARGING || state === BossState.CASTING;
+    const shakeAmt = isCharging ? (Math.random() - 0.5) * 2 : 0;
+    
+    ctx.translate(shakeAmt, shakeAmt + float);
 
-    // -- AURA (Phase 2) --
+    // --- AURA (Phase 2 Only) ---
     if (isP2) {
         ctx.save();
-        ctx.globalAlpha = 0.3 + Math.sin(time * 0.1) * 0.2;
-        ctx.fillStyle = cVoid;
-        ctx.beginPath();
-        ctx.arc(0, -15, 30, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        
-        // Particles rising
-        if (time % 5 === 0) {
-             // Logic handled in update usually, but visual flare here is ok for pure rendering
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.1) * 0.05;
+        ctx.fillStyle = cGlow;
+        // Spiky aura
+        for(let i=0; i<8; i++) {
+            const angle = (time * 0.05) + (i * Math.PI / 4);
+            const dist = 40 + Math.sin(time * 0.2 + i)*5;
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(Math.cos(angle)*dist, -20 + Math.sin(angle)*dist);
+            ctx.lineTo(Math.cos(angle + 0.5)*dist*0.5, -20 + Math.sin(angle + 0.5)*dist*0.5);
+            ctx.fill();
         }
+        ctx.restore();
     }
 
-    // -- LEGS / HAKAMA --
-    ctx.fillStyle = '#0f172a'; // Black/Blue
-    // Wide stance
+    // --- LEGS & LOWER BODY ---
+    // Wide Stance
+    const stanceW = 16;
+    const legLength = 18;
+    
+    ctx.save();
+    // Simulate leg movement if moving
+    const isMoving = Math.abs(boss.vx) > 0.1 || Math.abs(boss.vy) > 0.1;
+    const walkCycle = isMoving ? Math.sin(time * 0.15) : 0;
+
+    // HAKAMA (Pants) - Dark, flowing
+    ctx.fillStyle = '#0f172a';
     ctx.beginPath();
-    ctx.moveTo(-12, 0); 
-    ctx.lineTo(-16, 8); // Left foot
-    ctx.lineTo(-6, 0); // Crotch
-    ctx.lineTo(16, 8); // Right foot
-    ctx.lineTo(12, 0);
+    ctx.moveTo(0, -5);
+    ctx.lineTo(-stanceW - 4, legLength); // Left leg flare
+    ctx.lineTo(0, legLength - 4); // Crotch
+    ctx.lineTo(stanceW + 4, legLength); // Right leg flare
+    ctx.lineTo(0, -5);
+    ctx.fill();
+
+    // LEG ARMOR (Suneate)
+    const drawLeg = (xOffset: number, yOffset: number) => {
+        ctx.save();
+        ctx.translate(xOffset, yOffset);
+        // Shin Guard
+        ctx.fillStyle = cArmorMid;
+        ctx.fillRect(-5, 0, 10, 14);
+        // Gold Detail
+        ctx.fillStyle = cGold;
+        ctx.fillRect(-2, 2, 4, 10);
+        // Foot
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.moveTo(-5, 14); ctx.lineTo(6, 14); ctx.lineTo(8, 18); ctx.lineTo(-6, 18); ctx.fill();
+        ctx.restore();
+    };
+
+    drawLeg(-stanceW, 8 + walkCycle * 3);
+    drawLeg(stanceW, 8 - walkCycle * 3);
+    
+    // SKIRT (Kusazuri) - Layered Plates
+    ctx.translate(0, -2);
+    const plates = [-18, -6, 6];
+    plates.forEach((x, i) => {
+        const sway = Math.sin(time * 0.1 + i) * 1;
+        ctx.save();
+        ctx.translate(x + sway, 0);
+        // Main Plate
+        ctx.fillStyle = cArmorDark;
+        ctx.fillRect(0, 0, 12, 16);
+        // Lacing
+        ctx.fillStyle = cCloth;
+        for(let j=1; j<4; j++) ctx.fillRect(1, j*4, 10, 1);
+        // Gold Tip
+        ctx.fillStyle = cGold;
+        ctx.fillRect(0, 14, 12, 2);
+        ctx.restore();
+    });
+
+    ctx.restore();
+
+    // --- TORSO ---
+    const torsoY = -22 + breath * 1.5;
+    ctx.translate(0, torsoY);
+
+    // Do (Breastplate) - Ribcage Design
+    ctx.fillStyle = cArmorDark;
+    ctx.beginPath();
+    ctx.moveTo(-14, 10); ctx.lineTo(14, 10); // Waist
+    ctx.lineTo(18, -14); ctx.lineTo(-18, -14); // Shoulder line
+    ctx.fill();
+
+    // Bone Ribs Overlay
+    ctx.fillStyle = cBone;
+    ctx.globalAlpha = 0.8;
+    for(let i=0; i<3; i++) {
+        const w = 12 - i*2;
+        ctx.fillRect(-w, -10 + i*5, w*2, 2);
+    }
+    ctx.fillRect(-2, -12, 4, 16); // Spine
+    ctx.globalAlpha = 1.0;
+
+    // --- CAPE / MANTLE ---
+    ctx.save();
+    ctx.translate(0, -14);
+    ctx.fillStyle = cCloth;
+    const capeSway = Math.sin(time * 0.1) * 5;
+    ctx.beginPath();
+    ctx.moveTo(-10, 0);
+    ctx.lineTo(-25 + capeSway, 35); // Left point
+    ctx.lineTo(0, 25);
+    ctx.lineTo(25 + capeSway, 35); // Right point
+    ctx.lineTo(10, 0);
+    ctx.fill();
+    ctx.restore();
+
+    // --- SHOULDERS (O-Sode) ---
+    // Massive, boxy, intimidating
+    const drawShoulder = (isLeft: boolean) => {
+        ctx.save();
+        const dir = isLeft ? -1 : 1;
+        ctx.translate(dir * 20, -16 + heavyBreath * 2);
+        ctx.rotate(dir * Math.PI * 0.05); // Slight flair
+        
+        // Main Shield
+        ctx.fillStyle = cArmorMid;
+        ctx.fillRect(-8, 0, 16, 24);
+        
+        // Gold Crest
+        ctx.fillStyle = cGold;
+        ctx.beginPath(); ctx.arc(0, 6, 4, 0, Math.PI*2); ctx.fill();
+        
+        // Layering
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(-8, 8, 16, 2);
+        ctx.fillRect(-8, 16, 16, 2);
+        
+        ctx.restore();
+    };
+    drawShoulder(true);
+    drawShoulder(false);
+
+    // --- HEAD ---
+    ctx.save();
+    ctx.translate(0, -18);
+
+    // Neck Guard (Shikoro)
+    ctx.fillStyle = cArmorDark;
+    ctx.beginPath(); ctx.arc(0, 2, 12, Math.PI, 0); ctx.fill();
+
+    // Skull Face
+    ctx.fillStyle = cBone;
+    ctx.beginPath(); 
+    ctx.ellipse(0, 0, 7, 9, 0, 0, Math.PI*2); 
     ctx.fill();
     
-    // Armored Skirt (Kusazuri)
-    ctx.fillStyle = cArmor;
-    ctx.fillRect(-14, -8, 28, 8);
-    ctx.fillStyle = cGold; // Trim
-    ctx.fillRect(-14, -8, 28, 2);
-    ctx.fillRect(-14, -1, 28, 1);
+    // Shadowing for depth
+    ctx.fillStyle = cBoneShadow;
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = cBone;
+    ctx.beginPath(); ctx.arc(-2, -2, 6, 0, Math.PI*2); ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(-3, 0, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, 0, 2.5, 0, Math.PI*2); ctx.fill();
     
-    // -- TORSO --
-    // Breastplate
-    ctx.fillStyle = cArmor;
-    ctx.fillRect(-12, -24, 24, 16);
-    // Ribs detail (Skeletal motif)
-    ctx.fillStyle = cArmorLight;
-    ctx.fillRect(-8, -20, 16, 2);
-    ctx.fillRect(-9, -16, 18, 2);
-    ctx.fillRect(-7, -12, 14, 2);
-
-    // Shoulders (Sode) - Big and menacing
-    ctx.fillStyle = cArmor;
-    ctx.beginPath(); ctx.moveTo(-12, -24); ctx.lineTo(-24, -20); ctx.lineTo(-22, -10); ctx.lineTo(-12, -14); ctx.fill(); // Left
-    ctx.beginPath(); ctx.moveTo(12, -24); ctx.lineTo(24, -20); ctx.lineTo(22, -10); ctx.lineTo(12, -14); ctx.fill(); // Right
-    // Gold trim on shoulders
-    ctx.fillStyle = cGold;
-    ctx.fillRect(-24, -20, 2, 10);
-    ctx.fillRect(22, -20, 2, 10);
-
-    // -- HEAD --
-    ctx.translate(0, -26);
-    
-    if (isP2) {
-        // FLAMING SKULL
-        // Blue Flame Hair
-        ctx.fillStyle = cFlameOut;
-        for(let i=0; i<5; i++) {
-            const h = 8 + Math.sin(time*0.2 + i)*4;
-            ctx.fillRect(-8 + i*4, -8 - h, 3, h);
-        }
-        
-        // Skull
-        ctx.fillStyle = cBone;
-        ctx.fillRect(-7, -8, 14, 10);
-        
-        // Eyes (Red Glowing)
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(-4, -4, 2, 2);
-        ctx.fillRect(2, -4, 2, 2);
-        
-        // Broken Helmet Fragments
-        ctx.fillStyle = cGold;
-        ctx.beginPath(); ctx.moveTo(-8, -4); ctx.lineTo(-12, -10); ctx.lineTo(-8, -8); ctx.fill();
-
-    } else {
-        // FULL HELMET (Kabuto)
-        ctx.fillStyle = cArmor; // Helmet Bowl
-        ctx.beginPath(); ctx.arc(0, -6, 9, Math.PI, 0); ctx.fill();
-        ctx.fillRect(-9, -6, 18, 8);
-        
-        // Face Mask (Menpo)
-        ctx.fillStyle = '#0f172a'; // Dark face
-        ctx.fillRect(-6, -2, 12, 6);
-        ctx.fillStyle = cGold; // Teeth/Detail
-        ctx.fillRect(-4, 0, 2, 3);
-        ctx.fillRect(2, 0, 2, 3);
-
-        // Horns (Kuwagata)
-        ctx.fillStyle = cGold;
-        ctx.beginPath(); ctx.moveTo(-4, -10); ctx.lineTo(-14, -20); ctx.lineTo(-10, -10); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(4, -10); ctx.lineTo(14, -20); ctx.lineTo(10, -10); ctx.fill();
-    }
-
-    ctx.translate(0, 26); // Restore
-
-    // -- WEAPON (Giant Katana) --
-    ctx.save();
-    ctx.translate(16, -10); // Hand position
-    
-    let angle = 0;
-    if (boss.bossState === BossState.CHARGING) angle = -Math.PI / 2; // Held high
-    else if (isAttacking) angle = Math.PI * 0.7; // Swing down
-    else angle = Math.PI * 0.2; // Idle low
-
-    ctx.rotate(angle);
-
-    // Handle
-    ctx.fillStyle = '#451a03';
-    ctx.fillRect(0, -2, 12, 4);
-    
-    // Guard (Tsuba)
-    ctx.fillStyle = cGold;
-    ctx.fillRect(12, -6, 4, 12);
-    
-    // Blade
-    ctx.fillStyle = isP2 ? '#93c5fd' : '#cbd5e1'; // Blueish steel in P2
-    ctx.fillRect(16, -2, 40, 4);
-    
-    // Edge
-    if (isP2) {
-        ctx.shadowColor = cFlameOut;
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = '#fff';
-    } else {
-        ctx.fillStyle = '#f1f5f9';
-    }
-    ctx.fillRect(16, 0, 38, 2);
+    // Glowing Pupils
+    ctx.fillStyle = cGlow;
+    ctx.shadowColor = cGlow;
+    ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(-3, 0, 1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, 0, 1, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0;
 
+    // Helmet (Kabuto)
+    ctx.translate(0, -6);
+    ctx.fillStyle = cArmorDark;
+    ctx.beginPath(); ctx.arc(0, 0, 10, Math.PI, 0); ctx.fill(); // Dome
+    ctx.fillRect(-10, 0, 20, 4); // Rim
+    
+    // Kuwagata (Antler Crest) - Huge Gold V
+    ctx.fillStyle = cGold;
+    ctx.beginPath();
+    ctx.moveTo(0, -2);
+    ctx.quadraticCurveTo(-15, -10, -20, -35); // Left point
+    ctx.lineTo(-12, -10);
+    ctx.lineTo(0, -2);
+    ctx.lineTo(12, -10);
+    ctx.lineTo(20, -35); // Right point
+    ctx.quadraticCurveTo(15, -10, 0, -2);
+    ctx.fill();
+
+    // High Crest Center
+    ctx.fillStyle = cGlow;
+    ctx.beginPath(); ctx.arc(0, -8, 2, 0, Math.PI*2); ctx.fill();
+
+    ctx.restore(); // End Head
+
+    // --- ARMS & WEAPON ---
+    // Calculate Arm Rotation based on State & Timer
+    // Max timer reference: Charge=45, Attack=20
+    let rightArmAngle = Math.PI / 3; // Idle: 60 deg down
+    let leftArmAngle = Math.PI / 4;  // Idle: 45 deg down
+
+    if (state === BossState.IDLE) {
+        rightArmAngle += Math.sin(time * 0.05) * 0.1;
+    } else if (state === BossState.CHARGING) {
+        // Raise arm (45 -> 0)
+        const progress = 1 - (timer / 45); // 0 to 1
+        // Smooth step
+        const t = progress * progress * (3 - 2 * progress); 
+        rightArmAngle = (Math.PI/3) * (1 - t) + (-Math.PI * 0.7) * t; // Down to Up-Back
+    } else if (state === BossState.ATTACKING) {
+        // Swing down
+        const progress = 1 - (timer / 20);
+        // Snap finish
+        const t = 1 - Math.pow(1 - progress, 3);
+        rightArmAngle = (-Math.PI * 0.7) * (1 - t) + (Math.PI * 0.8) * t; // Up-Back to Down-Forward
+    } else if (state === BossState.CASTING) {
+        leftArmAngle = -Math.PI * 0.5; // Raised hand
+    }
+
+    // RIGHT ARM (Weapon)
+    ctx.save();
+    ctx.translate(20, -14); // Right shoulder socket
+    ctx.rotate(rightArmAngle);
+    
+    // Upper Arm
+    ctx.fillStyle = cArmorMid;
+    ctx.fillRect(-4, 0, 8, 14);
+    // Forearm (Kote)
+    ctx.fillStyle = cArmorDark;
+    ctx.fillRect(-5, 12, 10, 12);
+    // Gold Trim
+    ctx.fillStyle = cGold;
+    ctx.fillRect(-5, 12, 10, 2);
+
+    // WEAPON (Great Odachi)
+    ctx.translate(0, 22); // Hand
+    ctx.rotate(Math.PI / 2); // Grip perpendicular
+
+    // Hilt
+    ctx.fillStyle = '#18181b';
+    ctx.fillRect(-3, -8, 6, 32);
+    // Tsuba
+    ctx.fillStyle = cGold;
+    ctx.fillRect(-8, -8, 16, 4);
+    // Blade
+    const bladeL = 90;
+    ctx.fillStyle = cBlade;
+    ctx.beginPath();
+    ctx.moveTo(-4, -8);
+    ctx.lineTo(-6, -bladeL); // Tip flare
+    ctx.lineTo(0, -bladeL - 6); // Point
+    ctx.lineTo(2, -8);
+    ctx.fill();
+    // Edge Highlight
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath(); ctx.moveTo(-6, -bladeL); ctx.lineTo(0, -bladeL - 6); ctx.lineTo(-4, -10); ctx.fill();
+
+    // Energy Trail / Aura on blade
+    if (isP2 || state === BossState.ATTACKING) {
+        ctx.fillStyle = cGlow;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(-4, -10); ctx.lineTo(-10, -bladeL); ctx.lineTo(4, -bladeL); ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+
+    ctx.restore(); // End Right Arm
+
+    // LEFT ARM (Balance/Magic)
+    ctx.save();
+    ctx.translate(-20, -14);
+    ctx.rotate(leftArmAngle);
+    
+    // Upper
+    ctx.fillStyle = cArmorMid;
+    ctx.fillRect(-4, 0, 8, 14);
+    // Forearm
+    ctx.fillStyle = cArmorDark;
+    ctx.fillRect(-5, 12, 10, 12);
+    
+    // Hand / Magic
+    if (state === BossState.CASTING) {
+        ctx.translate(0, 24);
+        ctx.fillStyle = cGlow;
+        const pulse = 1 + Math.sin(time * 0.5) * 0.5;
+        ctx.beginPath(); ctx.arc(0, 0, 6 * pulse, 0, Math.PI*2); ctx.fill();
+        
+        // Orbiting particles
+        for(let i=0; i<3; i++) {
+            ctx.rotate(time * 0.2);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(10, 0, 2, 2);
+        }
+    }
+    
     ctx.restore();
 };
 
