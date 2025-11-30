@@ -1,5 +1,5 @@
 
-import { GameState, ItemType, WeaponType } from '../types';
+import { GameState, ItemType, WeaponType, EntityType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
 import { resolveMapCollision, rectIntersect } from './physics';
@@ -24,7 +24,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
     const pCenterX = player.x + player.width/2;
     const pCenterY = player.y + player.height/2;
     
-    // Normal aiming only if not spinning (or allow slow aiming/fixed rotation)
     player.aimAngle = Math.atan2(worldMy - pCenterY, worldMx - pCenterX);
     
     if (!player.isSlashDashing) {
@@ -40,7 +39,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             const newWeapon = state.interactionItem.payload;
             player.currentWeapon = newWeapon;
             player.secondaryAbilityCooldown = 0;
-            // Reset special states if swapping weapon
             player.isSpinning = false;
             
             state.interactionItem.payload = player.currentWeapon;
@@ -72,7 +70,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         // EXECUTIONER SWIRL LOGIC
         player.spinTimer--;
         
-        const orbitRadius = 48; // Reduced from 60
+        const orbitRadius = 48; 
         const spinSpeed = 0.5;
         const spinAngle = state.time * spinSpeed;
         const axeHeadX = pCenterX + Math.cos(spinAngle) * orbitRadius;
@@ -82,9 +80,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
              createParticles(state, axeHeadX, axeHeadY, 2, '#7f1d1d', spinAngle + Math.PI/2);
         }
 
-        // CONTINUOUS COLLISION CHECK (Every Frame)
-        // Dynamic Hitbox at Axe Head
-        const hitboxRadius = 40; // Size of the axe head swing area
+        const hitboxRadius = 40; 
         const weaponConfig = C.WEAPONS[player.currentWeapon];
         
         let hitCount = 0;
@@ -92,17 +88,16 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         state.enemies.forEach(e => {
             const dist = Math.sqrt((e.x + e.width/2 - axeHeadX)**2 + (e.y + e.height/2 - axeHeadY)**2);
             
-            // Check collision + per-enemy swirl cooldown (prevents 60 hits/sec)
             if (dist < hitboxRadius && (!e.swirlTimer || e.swirlTimer <= 0)) {
                 const dmgMult = weaponConfig.secondary?.damageMult || 0.5;
                 const damage = player.stats.damage * dmgMult;
                 const isCrit = Math.random() < player.stats.critChance;
-                dealDamage(state, e, damage, isCrit);
                 
-                // Set throttle timer for this enemy (e.g., hit every 10 frames = 6 hits/sec)
+                // We pass Base Dmg * 2 if Crit, but now dealDamage handles Extra Crit Dmg
+                dealDamage(state, e, isCrit ? damage * 2 : damage, isCrit);
+                
                 e.swirlTimer = 10;
                 
-                // Knockback outward from player (Reduced for fluidity)
                 const angle = Math.atan2(e.y - player.y, e.x - player.x);
                 e.vx += Math.cos(angle) * 1.5;
                 e.vy += Math.sin(angle) * 1.5;
@@ -125,7 +120,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
             const len = Math.sqrt(dx*dx + dy*dy);
             dx /= len; dy /= len;
         }
-        const speed = player.stats.speed * 0.8; // Slight slow during spin
+        const speed = player.stats.speed * 0.8; 
         player.vx += dx * speed * 0.2;
         player.vy += dy * speed * 0.2;
         player.vx *= C.FRICTION;
@@ -149,8 +144,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                 createParticles(state, e.x, e.y, 8, '#ffffff');
                 state.camera.shake = 6;
                 
-                // Removed HitStop
-                // Reduced push force
                 e.vx += player.vx * 0.1; 
                 e.vy += player.vy * 0.1;
                 state.echoes.forEach(echo => echo.targetId = e.id);
@@ -186,32 +179,21 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         player.isAttacking = true;
 
         const weapon = C.WEAPONS[player.currentWeapon];
-        // Animation Progress (0 to 1)
         const progress = 1 - (player.attackCooldown / player.maxAttackCooldown);
-        
-        // Calculate Swing Angle
-        // We want a Top-to-Bottom swing visually.
-        // In standard coordinates:
-        // Right Facing: Top (-Angle) to Bottom (+Angle) is Clockwise (Increasing).
-        // Left Facing: Top (Up-Left) to Bottom (Down-Left) is Counter-Clockwise (Decreasing).
         let swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
 
-        // Invert swing offset when facing left to ensure top-to-bottom swing in World Space
         if (Math.abs(player.aimAngle) > Math.PI / 2) {
             swingOffset *= -1;
         }
 
         const currentAngle = player.aimAngle + swingOffset;
-
-        // New Orbit Logic for Hitbox Origin
-        // Matches Rendering: Center -> Rotate(Aim) -> Translate(Orbit) -> Hand
         const orbitRadius = 12;
         const handX = pCenterX + Math.cos(player.aimAngle) * orbitRadius;
-        const handY = pCenterY + 2 + Math.sin(player.aimAngle) * orbitRadius; // +2 vertical offset matches rendering
+        const handY = pCenterY + 2 + Math.sin(player.aimAngle) * orbitRadius; 
 
-        // --- EXECUTIONER AXE REAL-TIME SWING LOGIC ---
+        // --- EXECUTIONER AXE ---
         if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
-             const weaponReach = 48; // Reduced from 70
+             const weaponReach = 48; 
              const axeX = handX + Math.cos(currentAngle) * weaponReach;
              const axeY = handY + Math.sin(currentAngle) * weaponReach;
 
@@ -235,7 +217,13 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
                      dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
                      
-                     // Significantly reduced knockback
+                     // Gemini Protocol (Melee)
+                     if (player.inventory['gemini_protocol'] && Math.random() < 0.3) {
+                         // Double hit visual
+                         createParticles(state, e.x, e.y, 5, '#818cf8');
+                         dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
+                     }
+
                      const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
                      e.vx += Math.cos(pushAngle) * 3; 
                      e.vy += Math.sin(pushAngle) * 3;
@@ -243,21 +231,18 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                      createParticles(state, e.x, e.y, 5, '#7f1d1d', pushAngle);
                      state.camera.shake = 8;
                      
-                     // Removed HitStop
-                     
                      player.swingHitList.push(e.id);
                      player.combo++;
                      player.comboTimer = C.COMBO_DECAY;
                  }
              });
         }
-        // --- BLOOD BLADE & CURSED BLADE PRECISE HITBOX ---
+        // --- BLOOD BLADE & CURSED BLADE ---
         else if (player.currentWeapon === WeaponType.BLOOD_BLADE || player.currentWeapon === WeaponType.CURSED_BLADE) {
              const range = weapon.range;
              const numPoints = 5;
              const points: {x: number, y: number}[] = [];
              
-             // Points radiate from the Hand Position
              for(let i=1; i<=numPoints; i++) {
                  const d = (range / numPoints) * i;
                  points.push({
@@ -266,7 +251,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                  });
              }
 
-             // Check enemies against these points
              state.enemies.forEach(e => {
                  if (player.swingHitList.includes(e.id)) return;
 
@@ -292,8 +276,13 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                      const isCrit = Math.random() < player.stats.critChance;
 
                      dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
+
+                     // Gemini Protocol (Melee)
+                     if (player.inventory['gemini_protocol'] && Math.random() < 0.3) {
+                         createParticles(state, e.x, e.y, 5, '#818cf8');
+                         dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
+                     }
                      
-                     // Significantly reduced knockback
                      const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
                      e.vx += Math.cos(pushAngle) * 1.5;
                      e.vy += Math.sin(pushAngle) * 1.5;
@@ -321,16 +310,31 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
       if (player.dashCooldown > 0) player.dashCooldown--;
       if (inputs.has('ShiftLeft') && player.dashCooldown <= 0) {
           player.isDashing = true;
-          // Apply Cooldown Reduction to Dash
           const cdr = Math.min(0.75, player.stats.cooldownReduction);
           player.dashCooldown = Math.ceil(C.DASH_COOLDOWN * (1 - cdr));
           
           player.invulnTimer = 20;
           
-          // 15. Chrono Splitter: Create Time Clone (Echo)
+          // 15. Chrono Splitter
           if (player.inventory['chrono_splitter']) {
-              spawnEcho(state, player.x + player.width/2, player.y + player.height/2, 2); // Merged Echo as Clone
-              createParticles(state, player.x, player.y, 10, '#ffffff'); // Flash
+              spawnEcho(state, player.x + player.width/2, player.y + player.height/2, 2); 
+              createParticles(state, player.x, player.y, 10, '#ffffff'); 
+          }
+
+          // Thunderstep Module
+          if (player.inventory['thunderstep_module']) {
+              const stacks = player.inventory['thunderstep_module'];
+              for(let i=0; i<3 * stacks; i++) {
+                 const angle = Math.random() * Math.PI * 2;
+                 state.projectiles.push({
+                     id: `thunder-${Math.random()}`, type: EntityType.PROJECTILE, ownerId: player.id,
+                     x: player.x + player.width/2, y: player.y + player.height/2,
+                     width: 8, height: 8,
+                     vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10,
+                     damage: 10 * stacks, color: '#facc15', lifeTime: 10, isDead: false, renderStyle: 'SHADOW_ARROW' // Re-use arrow for sharp look or create Lightning style
+                 });
+              }
+              createParticles(state, player.x, player.y, 10, '#facc15');
           }
 
           const len = Math.sqrt(player.vx*player.vx + player.vy*player.vy);

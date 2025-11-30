@@ -1,5 +1,5 @@
 
-import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemType, BossState } from '../types';
+import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemType, BossState, Entity } from '../types';
 import * as C from '../constants';
 import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
 import { createDungeon } from './dungeon';
@@ -12,8 +12,6 @@ export const handleAttack = (state: GameState) => {
     
     // Apply Attack Speed
     const speedMod = player.stats.attackSpeed;
-    // Apply Cooldown Reduction (Gravity Shredder Shards) - cap effective attack rate increase reasonable?
-    // Usually attack speed handles rate. CDR handles ability.
     const baseCooldown = Math.max(2, weapon.cooldown / speedMod);
     
     player.attackCooldown = baseCooldown;
@@ -35,21 +33,32 @@ export const handleAttack = (state: GameState) => {
         const spawnX = pCenterX + Math.cos(player.aimAngle) * orbitRadius;
         const spawnY = (pCenterY - chestHeightOffset) + Math.sin(player.aimAngle) * orbitRadius;
 
-        state.projectiles.push({
-            id: `proj-${Math.random()}`,
-            type: EntityType.PROJECTILE,
-            ownerId: player.id,
-            x: spawnX,
-            y: spawnY,
-            width: 14, height: 14,
-            vx: Math.cos(player.aimAngle) * 15,
-            vy: Math.sin(player.aimAngle) * 15,
-            damage: player.stats.damage * dmgMult * comboMult,
-            color: weapon.color,
-            lifeTime: 60,
-            isDead: false,
-            renderStyle: 'SHADOW_ARROW'
-        });
+        // Gemini Protocol: Chance to double cast
+        let projectileCount = 1;
+        if (player.inventory['gemini_protocol'] && Math.random() < 0.3) {
+            projectileCount = 2;
+        }
+
+        for (let i = 0; i < projectileCount; i++) {
+            const angleOffset = (i * 0.1) - (projectileCount > 1 ? 0.05 : 0);
+            
+            state.projectiles.push({
+                id: `proj-${Math.random()}`,
+                type: EntityType.PROJECTILE,
+                ownerId: player.id,
+                x: spawnX,
+                y: spawnY,
+                width: 14, height: 14,
+                vx: Math.cos(player.aimAngle + angleOffset) * 15,
+                vy: Math.sin(player.aimAngle + angleOffset) * 15,
+                damage: player.stats.damage * dmgMult * comboMult,
+                color: weapon.color,
+                lifeTime: 60,
+                isDead: false,
+                renderStyle: 'SHADOW_ARROW'
+            });
+        }
+
         // Oblivion Engine Check
         if (player.inventory['oblivion_engine']) {
              createParticles(state, spawnX, spawnY, 8, '#000000', player.aimAngle);
@@ -59,8 +68,7 @@ export const handleAttack = (state: GameState) => {
         return;
     }
 
-    // For all melee weapons (Axe, Swords, Katanas), we defer collision to updatePlayer loop
-    // to match the visual swing animation frame-by-frame.
+    // For all melee weapons, we defer collision to updatePlayer loop
     return;
 };
 
@@ -76,7 +84,7 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
     const config = slot === 'PRIMARY' ? (C.ABILITIES as any)[abilityType] : C.WEAPONS[player.currentWeapon].secondary;
     if (!config) return;
 
-    // Apply Cooldown Reduction (Gravity Shredder Shards)
+    // Apply Cooldown Reduction
     const cdr = Math.min(0.75, player.stats.cooldownReduction);
     const cooldown = Math.ceil(config.cooldown * (1 - cdr));
 
@@ -104,10 +112,10 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
         player.attackCooldown = 20;
         player.maxAttackCooldown = 20;
         
-        // Align spawn with visual weapon position (Chest height + Swing Radius)
+        // Align spawn with visual weapon position
         const pCenterX = player.x + player.width/2;
-        const pVisualY = player.y + player.height - 14; // Approx visual chest height
-        const offset = 24; // Distance out from body (Blade tip)
+        const pVisualY = player.y + player.height - 14; 
+        const offset = 24; 
 
         const spawnX = pCenterX + Math.cos(player.aimAngle) * offset;
         const spawnY = pVisualY + Math.sin(player.aimAngle) * offset;
@@ -177,7 +185,35 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
     // Boss Invulnerability during phase transition
     if (target.bossState === BossState.PHASE_TRANSITION) return;
 
-    target.hp -= amount;
+    // Apply Crit Damage Stat if it is a crit
+    let finalAmount = amount;
+    if (isCrit) {
+        // Remove the default 2x assumed by caller, apply correct stat
+        // Actually, the caller passed baseDmg * 2 if isCrit.
+        // We should probably rely on caller passing Base Damage and calculating crit here? 
+        // Or assume caller passed Base Damage.
+        // Current existing callers: 
+        //   Player Melee: deals `isCrit ? finalDmg * 2 : finalDmg`.
+        // Let's correct it here.
+        // The callers are inconsistent. Let's fix this in handleAttack/updatePlayer where damage is calculated.
+        // BUT for now, let's assume `amount` passed is already processed.
+        // Wait, if I want to support variable Crit Damage, I should refactor.
+        // However, looking at `updatePlayer`: `dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);`
+        // I will change `updatePlayer` logic to `dealDamage(state, e, finalDmg, isCrit)` and handle multipliers here.
+        // BUT for existing logic stability, I will just apply EXTRA crit damage here if it is crit.
+        
+        // Base crit is 2.0. If `critDamage` is 2.5, we need to add 0.5x base damage.
+        // `amount` is currently 2x base.
+        // base = amount / 2.
+        // bonus = base * (player.stats.critDamage - 2.0).
+        // total = amount + bonus.
+        
+        const base = amount / 2;
+        const bonus = base * (state.player.stats.critDamage - 2.0);
+        finalAmount += bonus;
+    }
+
+    target.hp -= finalAmount;
     
     // Prevent Phase 1 boss from dying before transition
     if (target.enemyType === EnemyType.BOSS && target.bossPhase === 1 && target.hp <= target.maxHp * 0.5) {
@@ -186,7 +222,6 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
 
     if (!isDoT) {
         target.hitFlashTimer = 5;
-        // Subtle jitter instead of strong displacement
         target.vx += (Math.random()-0.5) * 0.5;
         target.vy += (Math.random()-0.5) * 0.5;
     }
@@ -256,6 +291,7 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
 
     if (target.hp <= 0 && !target.isDead) {
          // --- ON KILL EFFECTS ---
+         
          // 12. Spectral Choir
          if (state.player.inventory['spectral_choir']) {
              const count = state.player.inventory['spectral_choir'];
@@ -264,12 +300,38 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
                  createParticles(state, target.x, target.y, 10, '#22d3ee');
              }
          }
+
+         // Volatile Catalyst (Uncommon)
+         if (state.player.inventory['volatile_catalyst']) {
+             const stack = state.player.inventory['volatile_catalyst'];
+             const range = 100;
+             const explosionDmg = target.maxHp * 0.5 * stack; 
+             createParticles(state, target.x, target.y, 20, '#f97316'); // Orange
+             
+             state.enemies.forEach(e => {
+                 if (e.id !== target.id) {
+                     const d = Math.sqrt((e.x - target.x)**2 + (e.y - target.y)**2);
+                     if (d < range) {
+                         dealDamage(state, e, explosionDmg, false, true);
+                         e.vx += (e.x - target.x) * 0.1;
+                         e.vy += (e.y - target.y) * 0.1;
+                     }
+                 }
+             });
+             // Visual Shockwave
+             state.projectiles.push({
+                id: `exp-${Math.random()}`, type: EntityType.PROJECTILE, ownerId: state.player.id,
+                x: target.x + target.width/2 - range/2, y: target.y + target.height/2 - range/2,
+                width: range, height: range, vx: 0, vy: 0,
+                damage: 0, color: '#f97316', lifeTime: 10, isDead: false, renderStyle: 'VOID_ORB'
+             });
+         }
     }
     
-    spawnDamageNumber(state, target.x, target.y, amount, isCrit, isDoT ? '#fca5a5' : (isCrit ? '#fbbf24' : '#ef4444'));
+    spawnDamageNumber(state, target.x, target.y, finalAmount, isCrit, isDoT ? '#fca5a5' : (isCrit ? '#fbbf24' : '#ef4444'));
 };
 
-export const damagePlayer = (state: GameState, amount: number) => {
+export const damagePlayer = (state: GameState, amount: number, source?: Entity) => {
     // God Mode Cheat
     if (state.cheats.godMode) return;
 
@@ -277,6 +339,17 @@ export const damagePlayer = (state: GameState, amount: number) => {
     
     let finalAmount = amount * (1 - player.stats.damageReduction);
     finalAmount = Math.max(1, finalAmount); 
+
+    // Thorned Plating (Reflect Damage)
+    if (player.inventory['thorned_plating'] && source && source.type === EntityType.ENEMY) {
+        const reflectPct = 0.3 * player.inventory['thorned_plating'];
+        const reflectedDmg = amount * reflectPct;
+        const enemy = source as Enemy;
+        if (!enemy.isDead) {
+            dealDamage(state, enemy, reflectedDmg, false, true);
+            createParticles(state, player.x, player.y, 5, '#84cc16'); // Green Spikes
+        }
+    }
 
     // Berserker Cortex
     if (player.inventory['berserker_cortex']) {

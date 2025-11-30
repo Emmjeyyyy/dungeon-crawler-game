@@ -10,9 +10,11 @@ export const recalculateStats = (player: Player) => {
         speed: C.PLAYER_SPEED,
         attackSpeed: 1.0,
         critChance: 0.05,
+        critDamage: 2.0, // Base 200%
         echoDurationMult: 1.0,
         damageReduction: 0,
         cooldownReduction: 0,
+        pickupRange: 0, // Bonus range
         luck: 0
     };
 
@@ -29,8 +31,9 @@ export const recalculateStats = (player: Player) => {
             } else {
                 const keyMap = {
                     'damage': 'damage', 'speed': 'speed', 'attackSpeed': 'attackSpeed',
-                    'critChance': 'critChance', 'echoDuration': 'echoDurationMult',
+                    'critChance': 'critChance', 'critDamage': 'critDamage', 'echoDuration': 'echoDurationMult',
                     'damageReduction': 'damageReduction', 'cooldownReduction': 'cooldownReduction',
+                    'pickupRange': 'pickupRange',
                     'luck': 'luck'
                 };
                 const targetKey = keyMap[target] as keyof typeof player.stats;
@@ -81,7 +84,7 @@ export const createInitialState = (): GameState => {
       activeAbility: AbilityType.SHADOW_CALL,
       stats: { 
           damage: C.PLAYER_BASE_DAMAGE, speed: C.PLAYER_SPEED, attackSpeed: 1.0, 
-          critChance: 0.05, echoDurationMult: 1.0, damageReduction: 0, cooldownReduction: 0, luck: 0 
+          critChance: 0.05, critDamage: 2.0, echoDurationMult: 1.0, damageReduction: 0, cooldownReduction: 0, pickupRange: 0, luck: 0 
       },
       shadowStack: [],
       combo: 0, comboTimer: 0, maxCombo: 0,
@@ -128,7 +131,7 @@ export const createTestState = (): GameState => {
       activeAbility: AbilityType.SHADOW_CALL,
       stats: { 
           damage: 50, speed: C.PLAYER_SPEED * 1.5, attackSpeed: 1.0, 
-          critChance: 0.1, echoDurationMult: 1.0, damageReduction: 0, cooldownReduction: 0, luck: 0 
+          critChance: 0.1, critDamage: 2.0, echoDurationMult: 1.0, damageReduction: 0, cooldownReduction: 0, pickupRange: 0, luck: 0 
       },
       shadowStack: [],
       combo: 0, comboTimer: 0, maxCombo: 0,

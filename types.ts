@@ -73,7 +73,7 @@ export interface PassiveItem {
   rarity: ItemRarity;
   icon: string; 
   statMod?: {
-      target: 'damage' | 'speed' | 'attackSpeed' | 'critChance' | 'maxHp' | 'echoDuration' | 'damageReduction' | 'cooldownReduction' | 'luck';
+      target: 'damage' | 'speed' | 'attackSpeed' | 'critChance' | 'critDamage' | 'maxHp' | 'echoDuration' | 'damageReduction' | 'cooldownReduction' | 'luck' | 'pickupRange';
       value: number; 
       isMult?: boolean;
   };
@@ -162,9 +162,11 @@ export interface Player extends Entity {
     speed: number;
     attackSpeed: number;
     critChance: number;
+    critDamage: number; // Multiplier (e.g., 2.0 = 200%)
     echoDurationMult: number;
     damageReduction: number;
     cooldownReduction: number;
+    pickupRange: number;
     luck: number;
   };
 
@@ -222,7 +224,7 @@ export interface Projectile extends Entity {
   ownerId: string;
   lifeTime: number;
   piercing?: boolean;
-  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER' | 'SHADOW_ARROW' | 'VOID_ORB' | 'SPECTRAL_BLADE' | 'TOMBSTONE_ZONE'; 
+  renderStyle?: 'DEFAULT' | 'WAVE' | 'DAGGER' | 'SHADOW_ARROW' | 'VOID_ORB' | 'SPECTRAL_BLADE' | 'TOMBSTONE_ZONE' | 'LIGHTNING'; 
 }
 
 export interface Particle extends Entity {

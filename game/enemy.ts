@@ -108,7 +108,7 @@ const updateKurogami = (state: GameState, boss: Enemy) => {
                     // Giant hitbox check
                     const slashRange = 180;
                     if (dist < slashRange) {
-                        damagePlayer(state, boss.damage * 1.5);
+                        damagePlayer(state, boss.damage * 1.5, boss);
                         // Knockback
                         player.vx += Math.cos(angleToPlayer) * 15;
                         player.vy += Math.sin(angleToPlayer) * 15;
@@ -142,7 +142,7 @@ const updateKurogami = (state: GameState, boss: Enemy) => {
             }
             // Contact Damage
             if (rectIntersect(boss, player) && player.invulnTimer <= 0) {
-                damagePlayer(state, boss.damage);
+                damagePlayer(state, boss.damage, boss);
             }
             
             if (boss.bossTimer! <= 0) {
@@ -261,7 +261,7 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
 
             const overlapThreshold = (state.player.width/2 + e.width/2) * 0.9;
             if (dist < overlapThreshold && e.attackCooldown <= 0 && state.player.invulnTimer <= 0) {
-                damagePlayer(state, e.damage);
+                damagePlayer(state, e.damage, e);
                 e.attackCooldown = 60;
             }
         }

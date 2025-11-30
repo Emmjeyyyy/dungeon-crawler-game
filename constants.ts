@@ -1,3 +1,4 @@
+
 import { AbilityType, WeaponType, ItemRarity, PassiveItem } from "./types";
 
 export const CANVAS_WIDTH = 1280;
@@ -164,6 +165,22 @@ export const PASSIVE_ITEMS: PassiveItem[] = [
         icon: '🛡️',
         statMod: { target: 'damageReduction', value: 0.10, isMult: false }
     },
+    {
+        id: 'void_prism',
+        name: 'Void Prism',
+        description: '+25% Critical Hit Damage',
+        rarity: ItemRarity.COMMON,
+        icon: '💎',
+        statMod: { target: 'critDamage', value: 0.25, isMult: false }
+    },
+    {
+        id: 'grav_pulse_unit',
+        name: 'Grav-Pulse Unit',
+        description: '+50 Item Pickup Range',
+        rarity: ItemRarity.COMMON,
+        icon: '🧲',
+        statMod: { target: 'pickupRange', value: 50, isMult: false }
+    },
 
     // UNCOMMON
     {
@@ -206,6 +223,30 @@ export const PASSIVE_ITEMS: PassiveItem[] = [
         icon: '⏳',
         statMod: { target: 'cooldownReduction', value: 0.15, isMult: false }
     },
+    {
+        id: 'thorned_plating',
+        name: 'Thorned Plating',
+        description: 'Reflect 30% of damage taken back to attacker',
+        rarity: ItemRarity.UNCOMMON,
+        icon: '🌵',
+        effect: 'reflectDamage'
+    },
+    {
+        id: 'volatile_catalyst',
+        name: 'Volatile Catalyst',
+        description: 'Enemies explode on death',
+        rarity: ItemRarity.UNCOMMON,
+        icon: '💣',
+        effect: 'explodeOnKill'
+    },
+    {
+        id: 'thunderstep_module',
+        name: 'Thunderstep Module',
+        description: 'Dashing releases electric shockwaves',
+        rarity: ItemRarity.UNCOMMON,
+        icon: '🌩️',
+        effect: 'lightningDash'
+    },
 
     // LEGENDARY
     {
@@ -247,6 +288,22 @@ export const PASSIVE_ITEMS: PassiveItem[] = [
         rarity: ItemRarity.LEGENDARY,
         icon: '👥',
         effect: 'cloneOnDodge'
+    },
+    {
+        id: 'echo_amplifier',
+        name: 'Echo Amplifier',
+        description: 'Echoes deal 100% more damage and move faster',
+        rarity: ItemRarity.LEGENDARY,
+        icon: '🔊',
+        effect: 'strongEchoes'
+    },
+    {
+        id: 'gemini_protocol',
+        name: 'Gemini Protocol',
+        description: '30% chance to double cast attacks',
+        rarity: ItemRarity.LEGENDARY,
+        icon: '👯',
+        effect: 'doubleCast'
     }
 ];
 

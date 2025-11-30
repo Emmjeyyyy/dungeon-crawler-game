@@ -1,3 +1,4 @@
+
 import { GameState, Enemy, ItemType } from '../types';
 import { resolveMapCollision, checkWall, rectIntersect } from './physics';
 import { dealDamage } from './eventHandlers';
@@ -27,14 +28,28 @@ export const updateEchoes = (state: GameState) => {
             echo.facingX = Math.sign(Math.cos(angle));
             
             if (minD < 30) {
-                dealDamage(state, target, echo.damage, false);
+                // Echo Amplifier Effect
+                let dmg = echo.damage;
+                if (state.player.inventory['echo_amplifier']) {
+                    dmg *= 2.0;
+                }
+
+                dealDamage(state, target, dmg, false);
                 echo.lifeTime -= 30;
                 echo.vx = -Math.cos(angle) * 5;
                 echo.vy = -Math.sin(angle) * 5;
             }
         } else {
+            // Grav-Pulse Unit Attraction (Items drift to player if no enemy nearby)
             const d = Math.sqrt((state.player.x - echo.x)**2 + (state.player.y - echo.y)**2);
-            if (d > 100) {
+            const attractRange = 100 + state.player.stats.pickupRange;
+
+            if (d < attractRange && d > 20) {
+                const angle = Math.atan2(state.player.y - echo.y, state.player.x - echo.x);
+                const speed = state.player.inventory['echo_amplifier'] ? 0.4 : 0.2;
+                echo.vx += Math.cos(angle) * speed;
+                echo.vy += Math.sin(angle) * speed;
+            } else if (d > 100) {
                 const angle = Math.atan2(state.player.y - echo.y, state.player.x - echo.x);
                 echo.vx += Math.cos(angle) * 0.2;
                 echo.vy += Math.sin(angle) * 0.2;
@@ -80,7 +95,25 @@ export const updateProjectiles = (state: GameState) => {
 
 export const updateItems = (state: GameState) => {
     let hovering: any = null;
+    const attractRange = 80 + state.player.stats.pickupRange;
+
     state.items.forEach(item => {
+        // Attraction Logic
+        if (item.itemType !== ItemType.PORTAL && item.itemType !== ItemType.WEAPON_DROP) {
+            const dx = (state.player.x + state.player.width/2) - (item.x + item.width/2);
+            const dy = (state.player.y + state.player.height/2) - (item.y + item.height/2);
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist < attractRange) {
+                item.vx += (dx / dist) * 0.5;
+                item.vy += (dy / dist) * 0.5;
+            }
+            item.x += item.vx;
+            item.y += item.vy;
+            item.vx *= 0.9;
+            item.vy *= 0.9;
+        }
+
         if (rectIntersect(state.player, item)) {
              if (item.itemType === ItemType.WEAPON_DROP || item.itemType === ItemType.PORTAL) {
                  hovering = item;
