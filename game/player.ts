@@ -93,7 +93,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
                 const damage = player.stats.damage * dmgMult;
                 const isCrit = Math.random() < player.stats.critChance;
                 
-                // We pass Base Dmg * 2 if Crit, but now dealDamage handles Extra Crit Dmg
                 dealDamage(state, e, isCrit ? damage * 2 : damage, isCrit);
                 
                 e.swirlTimer = 10;
@@ -167,11 +166,21 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         const len = Math.sqrt(dx*dx + dy*dy);
         dx /= len; dy /= len;
       }
-      const speed = player.stats.speed * (player.activeBuffs.some(b => b.type === ItemType.BUFF_SPEED) ? 1.5 : 1.0);
+      
+      // Sprint Check
+      const isSprinting = inputs.has('ShiftLeft');
+      const sprintMult = isSprinting ? C.SPRINT_SPEED_MULT : 1.0;
+
+      const speed = player.stats.speed * sprintMult * (player.activeBuffs.some(b => b.type === ItemType.BUFF_SPEED) ? 1.5 : 1.0);
       player.vx += dx * speed * 0.2;
       player.vy += dy * speed * 0.2;
       player.vx *= C.FRICTION;
       player.vy *= C.FRICTION;
+
+      // Sprint Particles
+      if (isSprinting && (dx !== 0 || dy !== 0) && state.time % 5 === 0) {
+          createParticles(state, player.x + player.width/2, player.y + player.height, 1, '#64748b'); // Dust
+      }
 
       // Handle Attack Logic
       if (player.attackCooldown > 0) {
@@ -308,7 +317,8 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
       }
 
       if (player.dashCooldown > 0) player.dashCooldown--;
-      if (inputs.has('ShiftLeft') && player.dashCooldown <= 0) {
+      // DASH (Moved to SPACE)
+      if (inputs.has('Space') && player.dashCooldown <= 0) {
           player.isDashing = true;
           const cdr = Math.min(0.75, player.stats.cooldownReduction);
           player.dashCooldown = Math.ceil(C.DASH_COOLDOWN * (1 - cdr));

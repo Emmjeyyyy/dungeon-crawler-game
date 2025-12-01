@@ -1,5 +1,4 @@
 
-
 import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType, BossState } from '../types';
 import * as C from '../constants';
 
@@ -351,7 +350,8 @@ const drawCharacter = (
     }
 
     const isMoving = Math.abs(entity.vx) > 0.5 || Math.abs(entity.vy) > 0.5;
-    const bob = isMoving ? Math.sin(time * 0.5) * 2 : Math.sin(time * 0.1) * 1;
+    const isSprinting = isMoving && (Math.abs(entity.vx) > 4 || Math.abs(entity.vy) > 4);
+    const bob = isMoving ? (isSprinting ? Math.sin(time * 0.8) * 3 : Math.sin(time * 0.5) * 2) : Math.sin(time * 0.1) * 1;
     
     ctx.save();
     ctx.translate(entity.x + entity.width/2, entity.y + entity.height);

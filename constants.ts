@@ -9,6 +9,7 @@ export const TILE_SIZE = 64;
 export const FRICTION = 0.82;
 export const PLAYER_SPEED = 3.5; 
 export const PLAYER_DASH_FORCE = 22;
+export const SPRINT_SPEED_MULT = 1.6;
 
 export const PLAYER_SIZE = { width: 16, height: 16 }; 
 export const PLAYER_BASE_HP = 100;
