@@ -36,11 +36,19 @@ const HUD: React.FC<HUDProps> = ({
   const weaponConfig = WEAPONS[currentWeapon];
   const secondaryConfig = weaponConfig.secondary;
 
+  const isLowHp = hpPercent < 30;
+
   return (
     <div className="absolute top-0 left-0 w-full h-full p-6 pointer-events-none flex flex-col justify-between font-sans">
       
+      {/* Low HP Warning Overlay */}
+      <div 
+        className={`absolute inset-0 bg-[radial-gradient(circle,transparent_0%,transparent_50%,rgba(220,38,38,0.4)_100%)] transition-opacity duration-1000 ${isLowHp ? 'opacity-100 animate-pulse' : 'opacity-0'}`}
+        style={{ pointerEvents: 'none' }}
+      ></div>
+
       {/* Top Bar */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start z-10">
         {/* Vitals */}
         <div className="w-80">
             {/* HP */}
@@ -166,7 +174,7 @@ const HUD: React.FC<HUDProps> = ({
       )}
 
       {/* Bottom Bar */}
-      <div className="flex justify-between items-end w-full">
+      <div className="flex justify-between items-end w-full z-10">
           
           {/* Left: Inventory & Buffs */}
           <div className="flex flex-col gap-4 items-start">

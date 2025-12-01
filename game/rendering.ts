@@ -10,9 +10,8 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const timer = boss.bossTimer || 0;
 
     // --- COLOR PALETTE (Regal & Dead) ---
-    const cArmorDark = '#1e293b'; // Slate 800 (Was #020617 Abyss - Invisible)
+    const cArmorDark = '#1e293b'; // Slate 800
     const cArmorMid = '#334155';  // Slate 700
-    // cArmorLight and cGoldHighlight removed to fix TS unused vars error
     const cBone = '#e2e8f0';      
     const cBoneShadow = '#94a3b8'; 
     const cGold = '#d97706';      
@@ -75,7 +74,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
         ctx.save();
         ctx.translate(xOffset, yOffset);
         // Shin Guard
-        ctx.fillStyle = cArmorMid; // Updated color
+        ctx.fillStyle = cArmorMid; 
         ctx.fillRect(-5, 0, 10, 14);
         // Gold Detail
         ctx.fillStyle = cGold;
@@ -97,7 +96,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
         ctx.save();
         ctx.translate(x + sway, 0);
         // Main Plate
-        ctx.fillStyle = cArmorDark; // Updated color
+        ctx.fillStyle = cArmorDark;
         ctx.fillRect(0, 0, 12, 16);
         // Lacing
         ctx.fillStyle = cCloth;
@@ -114,7 +113,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const torsoY = -22 + breath * 1.5;
     ctx.translate(0, torsoY);
 
-    // FIXED: Draw Cape BEFORE Torso (Behind)
+    // Cape BEFORE Torso (Behind)
     ctx.save();
     ctx.translate(0, -14);
     ctx.fillStyle = cCloth;
@@ -129,7 +128,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.restore();
 
     // Do (Breastplate) - Ribcage Design
-    ctx.fillStyle = cArmorDark; // Updated color
+    ctx.fillStyle = cArmorDark;
     ctx.beginPath();
     ctx.moveTo(-14, 10); ctx.lineTo(14, 10); // Waist
     ctx.lineTo(18, -14); ctx.lineTo(-18, -14); // Shoulder line
@@ -146,15 +145,14 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.globalAlpha = 1.0;
 
     // --- SHOULDERS (O-Sode) ---
-    // Massive, boxy, intimidating
     const drawShoulder = (isLeft: boolean) => {
         ctx.save();
         const dir = isLeft ? -1 : 1;
         ctx.translate(dir * 20, -16 + heavyBreath * 2);
-        ctx.rotate(dir * Math.PI * 0.05); // Slight flair
+        ctx.rotate(dir * Math.PI * 0.05); 
         
         // Main Shield
-        ctx.fillStyle = cArmorMid; // Updated color
+        ctx.fillStyle = cArmorMid;
         ctx.fillRect(-8, 0, 16, 24);
         
         // Gold Crest
@@ -176,7 +174,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.translate(0, -18);
 
     // Neck Guard (Shikoro)
-    ctx.fillStyle = cArmorDark; // Updated color
+    ctx.fillStyle = cArmorDark; 
     ctx.beginPath(); ctx.arc(0, 2, 12, Math.PI, 0); ctx.fill();
 
     // Skull Face
@@ -206,7 +204,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
 
     // Helmet (Kabuto)
     ctx.translate(0, -6);
-    ctx.fillStyle = cArmorDark; // Updated color
+    ctx.fillStyle = cArmorDark;
     ctx.beginPath(); ctx.arc(0, 0, 10, Math.PI, 0); ctx.fill(); // Dome
     ctx.fillRect(-10, 0, 20, 4); // Rim
     
@@ -229,47 +227,41 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.restore(); // End Head
 
     // --- ARMS & WEAPON ---
-    // Calculate Arm Rotation based on State & Timer
-    // Max timer reference: Charge=45, Attack=20
     let rightArmAngle = Math.PI / 3; // Idle: 60 deg down
     let leftArmAngle = Math.PI / 4;  // Idle: 45 deg down
 
     if (state === BossState.IDLE) {
         rightArmAngle += Math.sin(time * 0.05) * 0.1;
     } else if (state === BossState.CHARGING) {
-        // Raise arm (45 -> 0)
-        const progress = 1 - (timer / 45); // 0 to 1
-        // Smooth step
+        const progress = 1 - (timer / 45); 
         const t = progress * progress * (3 - 2 * progress); 
-        rightArmAngle = (Math.PI/3) * (1 - t) + (-Math.PI * 0.7) * t; // Down to Up-Back
+        rightArmAngle = (Math.PI/3) * (1 - t) + (-Math.PI * 0.7) * t; 
     } else if (state === BossState.ATTACKING) {
-        // Swing down
         const progress = 1 - (timer / 20);
-        // Snap finish
         const t = 1 - Math.pow(1 - progress, 3);
-        rightArmAngle = (-Math.PI * 0.7) * (1 - t) + (Math.PI * 0.8) * t; // Up-Back to Down-Forward
+        rightArmAngle = (-Math.PI * 0.7) * (1 - t) + (Math.PI * 0.8) * t; 
     } else if (state === BossState.CASTING) {
         leftArmAngle = -Math.PI * 0.5; // Raised hand
     }
 
     // RIGHT ARM (Weapon)
     ctx.save();
-    ctx.translate(20, -14); // Right shoulder socket
+    ctx.translate(20, -14); 
     ctx.rotate(rightArmAngle);
     
     // Upper Arm
-    ctx.fillStyle = cArmorMid; // Updated color
+    ctx.fillStyle = cArmorMid; 
     ctx.fillRect(-4, 0, 8, 14);
     // Forearm (Kote)
-    ctx.fillStyle = cArmorDark; // Updated color
+    ctx.fillStyle = cArmorDark;
     ctx.fillRect(-5, 12, 10, 12);
     // Gold Trim
     ctx.fillStyle = cGold;
     ctx.fillRect(-5, 12, 10, 2);
 
     // WEAPON (Great Odachi)
-    ctx.translate(0, 22); // Hand
-    ctx.rotate(Math.PI / 2); // Grip perpendicular
+    ctx.translate(0, 22); 
+    ctx.rotate(Math.PI / 2); 
 
     // Hilt
     ctx.fillStyle = '#18181b';
@@ -307,10 +299,10 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     ctx.rotate(leftArmAngle);
     
     // Upper
-    ctx.fillStyle = cArmorMid; // Updated color
+    ctx.fillStyle = cArmorMid;
     ctx.fillRect(-4, 0, 8, 14);
     // Forearm
-    ctx.fillStyle = cArmorDark; // Updated color
+    ctx.fillStyle = cArmorDark;
     ctx.fillRect(-5, 12, 10, 12);
     
     // Hand / Magic
@@ -345,7 +337,6 @@ const drawCharacter = (
     const e = isEnemy ? (entity as Enemy) : null;
     const echo = isEcho ? (entity as Echo) : null;
 
-    // Guard Player-specific property `isSlashDashing`
     if (p && p.isSlashDashing) {
          ctx.save();
          ctx.translate(p.x + p.width/2 - p.vx * 2, p.y + p.height - p.vy * 2);
@@ -370,7 +361,6 @@ const drawCharacter = (
       const bossScale = e.scale || 3;
       ctx.scale(bossScale, bossScale);
       
-      // Hit flash for boss
       if (e.hitFlashTimer > 0) {
           ctx.globalCompositeOperation = 'source-atop';
           ctx.fillStyle = 'white';
@@ -379,7 +369,7 @@ const drawCharacter = (
       drawKurogami(ctx, e, time);
       
       ctx.restore();
-      return; // Skip default drawing
+      return; 
     } else if (e) {
       const scale = e.scale || 1;
       ctx.scale(scale, scale);
@@ -388,7 +378,6 @@ const drawCharacter = (
       ctx.scale(scale, scale);
     }
 
-    // --- STANDARD ENTITY DRAWING ---
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(0, 0, 10, 4, 0, 0, Math.PI*2); ctx.fill();
 
@@ -417,7 +406,6 @@ const drawCharacter = (
 
     ctx.fillStyle = hitFlash ? '#ffffff' : entity.color;
     
-    // Body shapes logic
     if ((e && e.enemyType === EnemyType.STANDARD) || (echo && echo.tier === 1)) {
         ctx.fillRect(-6, -10, 14, 14);
     } else if ((e && e.enemyType === EnemyType.ELITE) || (echo && echo.tier === 2)) {
@@ -426,7 +414,6 @@ const drawCharacter = (
     } else if ((e && e.enemyType === EnemyType.MYSTIC) || (echo && echo.tier === 3)) {
         ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.lineTo(0, -20); ctx.fill();
     } else if (p) {
-        // --- IMPROVED PLAYER BODY ---
         const cArmor = hitFlash ? '#ffffff' : '#cbd5e1';
         const cArmorDark = hitFlash ? '#ffffff' : '#94a3b8';
         const cCape = hitFlash ? '#ffffff' : '#7f1d1d';
@@ -475,7 +462,6 @@ const drawCharacter = (
             ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
         }
     } else if (p) {
-        // --- IMPROVED PLAYER HEAD ---
         const cHelmet = hitFlash ? '#ffffff' : '#f1f5f9';
         const cHelmetDark = hitFlash ? '#ffffff' : '#cbd5e1';
         const cVisor = hitFlash ? '#ffffff' : '#0f172a';
@@ -503,7 +489,6 @@ const drawCharacter = (
         ctx.fillRect(-1, -10, 2, 8);
 
         if (!hitFlash) {
-            // Eye glow inside visor
             ctx.fillStyle = cEye; 
             ctx.globalAlpha = 0.8;
             ctx.fillRect(-2.5, -7, 2, 1);
@@ -516,7 +501,6 @@ const drawCharacter = (
         ctx.fillRect(-1, -12, 2, 2);
 
     } else if (echo) {
-        // Echo Head Rendering
         if (echo.tier === 3) {
              ctx.beginPath(); ctx.arc(0, -5, 6, 0, Math.PI*2); ctx.fill();
         } else {
@@ -524,38 +508,31 @@ const drawCharacter = (
         }
     }
 
-    // Player specific rendering (Weapon etc)
     if (p && !p.isDead && !p.isSlashDashing) {
             const weapon = C.WEAPONS[p.currentWeapon];
             ctx.save();
             
-            // Unified Weapon Orbit Logic
             const orbitRadius = 12; 
-            const shoulderOffset = 2; // Vertical adjustment from center
+            const shoulderOffset = 2; 
             
             ctx.translate(0, shoulderOffset); 
             
-            // Standard Melee & Bow Rotation
             if (p.currentWeapon === WeaponType.SHADOW_BOW) {
                  ctx.rotate(p.aimAngle);
                  ctx.translate(18, 0); 
             } else if (p.isSpinning) {
-                 // Special Spin Case (Executioner Swirl)
                  ctx.rotate(time * 0.5);
             } else {
-                 // Standard Melee Orbit
                  ctx.rotate(p.aimAngle);
                  ctx.translate(orbitRadius, 0);
             }
 
-            // Flip Y if facing left to keep weapon "upright" relative to swing
             if (!p.isSpinning && Math.abs(p.aimAngle) > Math.PI / 2) {
                 ctx.scale(1, -1);
             }
 
             if (p.currentWeapon === WeaponType.SHADOW_BOW) {
-                // --- Pixel Art Shadow Bow Rendering ---
-                const s = 2; // scale
+                const s = 2; 
                 const cDark = '#2e1065'; 
                 const cMain = '#7c3aed'; 
                 const cHigh = '#c4b5fd'; 
@@ -605,23 +582,19 @@ const drawCharacter = (
                 ctx.fillStyle = cDark; ctx.fillRect(-4*s, 8*s, 2*s, 1*s);
 
             } else if (p.currentWeapon === WeaponType.EXECUTIONER_AXE) {
-                // --- EXECUTIONER AXE RENDER ---
-                // Apply Swing Rotation locally (Scale handled above)
                 let swingOffset = 0; 
                 if (p.isAttacking && !p.isSpinning) {
                     const progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
                     swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-                    // NOTE: Do not invert swingOffset here, scale(1, -1) handles the flip for left-facing
                 } else if (!p.isSpinning) {
-                    swingOffset = Math.sin(time * 0.1) * 0.1; // Idle breath
+                    swingOffset = Math.sin(time * 0.1) * 0.1;
                 }
                 
                 if (!p.isSpinning) ctx.rotate(swingOffset);
 
-                // --- AXE PIXEL ART ---
                 const s = 2.0;
                 
-                // Handle (Dark Wood/Leather) - Draw from 0
+                // Handle
                 ctx.fillStyle = '#451a03'; ctx.fillRect(0, -1*s, 32*s, 2*s); 
                 
                 // Grip Wraps
@@ -629,16 +602,15 @@ const drawCharacter = (
                 ctx.fillRect(4*s, -1.2*s, 2*s, 2.4*s);
                 ctx.fillRect(12*s, -1.2*s, 2*s, 2.4*s);
                 
-                const headX = 22*s; // 44px out (Was 30s / 60px)
+                const headX = 22*s; 
 
-                // Axe Head Connector (Dark Steel)
-                ctx.fillStyle = '#1e293b'; // Slate 800
+                // Axe Head Connector
+                ctx.fillStyle = '#1e293b'; 
                 ctx.fillRect(headX - 2*s, -3*s, 4*s, 6*s);
                 
-                // Double Headed Blades
-                ctx.fillStyle = '#334155'; // Slate 700
+                // Blades
+                ctx.fillStyle = '#334155'; 
                 
-                // Top Blade
                 ctx.beginPath();
                 ctx.moveTo(headX - 2*s, -3*s);
                 ctx.lineTo(headX - 6*s, -8*s); 
@@ -646,7 +618,6 @@ const drawCharacter = (
                 ctx.lineTo(headX + 2*s, -3*s); 
                 ctx.fill();
                 
-                // Bottom Blade
                 ctx.beginPath();
                 ctx.moveTo(headX - 2*s, 3*s);
                 ctx.lineTo(headX - 6*s, 8*s); 
@@ -654,25 +625,21 @@ const drawCharacter = (
                 ctx.lineTo(headX + 2*s, 3*s); 
                 ctx.fill();
 
-                // Blade Edge
-                ctx.fillStyle = '#94a3b8'; // Slate 400
+                ctx.fillStyle = '#94a3b8'; 
                 ctx.beginPath(); ctx.moveTo(headX - 6*s, -8*s); ctx.lineTo(headX + 6*s, -10*s); ctx.lineTo(headX + 4*s, -6*s); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(headX - 6*s, 8*s); ctx.lineTo(headX + 6*s, 10*s); ctx.lineTo(headX + 4*s, 6*s); ctx.fill();
 
-                // Blood Stains
                 ctx.fillStyle = '#7f1d1d'; 
                 ctx.fillRect(headX + 2*s, -8*s, 2*s, 2*s);
                 ctx.fillRect(headX + 4*s, 8*s, 1*s, 2*s);
                 ctx.fillRect(headX, -4*s, 3*s, 1*s);
 
             } else {
-                // --- STANDARD MELEE WEAPONS ---
                 let swingOffset = 0; 
                 
                 if (p.isAttacking) {
                      const progress = 1 - (p.attackCooldown / (p.maxAttackCooldown || weapon.cooldown));
                      swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-                     // NOTE: Scale flip handles direction
                 } else {
                      swingOffset = Math.sin(time * 0.1) * 0.1;
                 }
@@ -681,24 +648,21 @@ const drawCharacter = (
                 
                 if (p.currentWeapon === WeaponType.BLOOD_BLADE) {
                     const s = 2.5;
-                    // Adjusted coordinates to start Hilt at 0
-                    ctx.fillStyle = '#3f2e22'; ctx.fillRect(0, -1 * s, 5 * s, 2 * s); // Hilt
-                    ctx.fillStyle = '#565963'; ctx.fillRect(-1 * s, -1.5 * s, 2 * s, 3 * s); // Guard Back
-                    ctx.fillStyle = '#8f939d'; ctx.fillRect(5 * s, -4 * s, 2 * s, 8 * s); // Guard Cross
-                    ctx.fillStyle = '#c7cfdd'; ctx.fillRect(7 * s, -2 * s, 14 * s, 4 * s); // Blade
+                    ctx.fillStyle = '#3f2e22'; ctx.fillRect(0, -1 * s, 5 * s, 2 * s); 
+                    ctx.fillStyle = '#565963'; ctx.fillRect(-1 * s, -1.5 * s, 2 * s, 3 * s); 
+                    ctx.fillStyle = '#8f939d'; ctx.fillRect(5 * s, -4 * s, 2 * s, 8 * s); 
+                    ctx.fillStyle = '#c7cfdd'; ctx.fillRect(7 * s, -2 * s, 14 * s, 4 * s); 
                     ctx.fillStyle = '#8f939d'; ctx.fillRect(7 * s, -2 * s, 14 * s, 1 * s); ctx.fillRect(7 * s, 1 * s, 14 * s, 1 * s);
                     ctx.fillStyle = '#565963'; ctx.fillRect(7 * s, -0.5 * s, 13 * s, 1 * s);
                     ctx.fillStyle = '#c7cfdd'; ctx.beginPath(); ctx.moveTo(21 * s, -2 * s); ctx.lineTo(24 * s, 0); ctx.lineTo(21 * s, 2 * s); ctx.fill();
                 } else if (p.currentWeapon === WeaponType.CURSED_BLADE) {
-                    // CURSED BLADE (Katana)
                     const s = 2.0;
-                    // Hilt starts at 0
                     ctx.fillStyle = '#2e1065'; ctx.fillRect(0, -1.5*s, 6*s, 3*s);
                     ctx.fillStyle = '#4c1d95'; ctx.fillRect(1*s, -0.5*s, 1*s, 1*s); ctx.fillRect(3*s, -0.5*s, 1*s, 1*s);
-                    ctx.fillStyle = '#b45309'; ctx.fillRect(6*s, -2.5*s, 2*s, 5*s); // Tsuba
+                    ctx.fillStyle = '#b45309'; ctx.fillRect(6*s, -2.5*s, 2*s, 5*s); 
                     ctx.fillStyle = '#78350f'; ctx.fillRect(6.5*s, -1.5*s, 1*s, 3*s);
-                    ctx.fillStyle = '#334155'; ctx.fillRect(8*s, -1.5*s, 24*s, 3*s); // Blade
-                    ctx.fillStyle = '#a855f7'; ctx.fillRect(8*s, 0.5*s, 22*s, 1*s); // Edge Glow
+                    ctx.fillStyle = '#334155'; ctx.fillRect(8*s, -1.5*s, 24*s, 3*s); 
+                    ctx.fillStyle = '#a855f7'; ctx.fillRect(8*s, 0.5*s, 22*s, 1*s); 
                     ctx.beginPath(); ctx.moveTo(32*s, -1.5*s); ctx.lineTo(36*s, 0); ctx.lineTo(30*s, 1.5*s);
                     ctx.fillStyle = '#334155'; ctx.fill();
                     ctx.fillStyle = '#d8b4fe'; ctx.fillRect(16*s, -1*s, 1*s, 1*s); ctx.fillRect(26*s, 0, 1*s, 1*s);
@@ -709,34 +673,25 @@ const drawCharacter = (
     ctx.restore(); 
 };
 
-// --- CUSTOM ITEM DRAWERS ---
-
 const drawBloodVial = (ctx: CanvasRenderingContext2D, time: number) => {
-    // Bob animation
     const yOff = Math.sin(time * 0.1) * 3;
     ctx.translate(0, yOff);
 
-    // Glow
     ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
     ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
 
-    // Bottle
-    ctx.fillStyle = '#cbd5e1'; // Glass
+    ctx.fillStyle = '#cbd5e1'; 
     ctx.beginPath(); ctx.arc(0, 4, 6, 0, Math.PI*2); ctx.fill();
     
-    // Liquid
-    ctx.fillStyle = '#ef4444'; // Red
+    ctx.fillStyle = '#ef4444'; 
     ctx.beginPath(); ctx.arc(0, 6, 5, 0, Math.PI*2); ctx.fill();
     
-    // Neck
     ctx.fillStyle = '#94a3b8';
     ctx.fillRect(-2, -6, 4, 5);
     
-    // Cork
     ctx.fillStyle = '#78350f';
     ctx.fillRect(-2.5, -7, 5, 2);
 
-    // Shine
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     ctx.beginPath(); ctx.ellipse(-2, 2, 1.5, 3, Math.PI/4, 0, Math.PI*2); ctx.fill();
 }
@@ -747,24 +702,19 @@ const drawBuffIcon = (ctx: CanvasRenderingContext2D, type: 'DAMAGE' | 'SPEED', t
     
     const color = type === 'DAMAGE' ? '#ef4444' : '#3b82f6';
     
-    // Glow
     ctx.fillStyle = type === 'DAMAGE' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)';
     ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
 
-    // Stone Background
     ctx.fillStyle = '#1e293b';
     ctx.beginPath();
     ctx.moveTo(0, -10); ctx.lineTo(9, -5); ctx.lineTo(9, 5); ctx.lineTo(0, 10); ctx.lineTo(-9, 5); ctx.lineTo(-9, -5);
     ctx.fill();
 
-    // Icon
     ctx.fillStyle = color;
     if (type === 'DAMAGE') {
-        // Sword / Jagged shape
         ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(-4, -2); ctx.lineTo(0, -8); ctx.lineTo(4, -2); ctx.fill();
-        ctx.fillRect(-3, -2, 6, 2); // Crossguard
+        ctx.fillRect(-3, -2, 6, 2); 
     } else {
-        // Wing shape
         ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(2, -6); ctx.lineTo(6, -2); ctx.lineTo(4, 4); ctx.lineTo(-2, 2); ctx.fill();
     }
 }
@@ -773,24 +723,21 @@ const drawWeaponDrop = (ctx: CanvasRenderingContext2D, weaponType: WeaponType, t
     const yOff = Math.sin(time * 0.1) * 3;
     ctx.translate(0, yOff);
 
-    // Pedestal Glow
     ctx.fillStyle = 'rgba(251, 191, 36, 0.2)';
     ctx.beginPath(); ctx.ellipse(0, 10, 10, 4, 0, 0, Math.PI*2); ctx.fill();
 
-    // Mini weapon representation
     const weapon = C.WEAPONS[weaponType];
     ctx.fillStyle = weapon.color;
-    ctx.rotate(Math.PI / 4); // Angled presentation
+    ctx.rotate(Math.PI / 4); 
     
     if (weaponType === WeaponType.SHADOW_BOW) {
         ctx.strokeStyle = weapon.color; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(0, 0, 8, -0.5, 3.5); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(-6, -6); ctx.lineTo(6, 6); ctx.stroke();
     } else {
-        // Generic sword-like shape for others, varying color is enough cue
-        ctx.fillRect(-2, -8, 4, 16); // Blade
-        ctx.fillStyle = '#fff'; ctx.fillRect(-3, 2, 6, 2); // Guard
-        ctx.fillStyle = '#451a03'; ctx.fillRect(-1, 4, 2, 4); // Hilt
+        ctx.fillRect(-2, -8, 4, 16); 
+        ctx.fillStyle = '#fff'; ctx.fillRect(-3, 2, 6, 2); 
+        ctx.fillStyle = '#451a03'; ctx.fillRect(-1, 4, 2, 4); 
     }
 }
 
@@ -798,8 +745,7 @@ const drawPortal = (ctx: CanvasRenderingContext2D, time: number) => {
     const scale = 1 + Math.sin(time * 0.1) * 0.05;
     ctx.scale(scale, scale);
 
-    // Outer Swirl
-    ctx.strokeStyle = '#7c3aed'; // Violet
+    ctx.strokeStyle = '#7c3aed'; 
     ctx.lineWidth = 2;
     for(let i=0; i<4; i++) {
         const angle = (time * 0.05) + (i * Math.PI/2);
@@ -808,21 +754,16 @@ const drawPortal = (ctx: CanvasRenderingContext2D, time: number) => {
         ctx.stroke();
     }
 
-    // Inner Void
     ctx.fillStyle = '#2e1065';
     ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
     
-    // Center Core
     ctx.fillStyle = '#fff';
     ctx.globalAlpha = 0.5 + Math.sin(time * 0.3) * 0.5;
     ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1.0;
 }
 
-// ---------------------------
-
 export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => {
-    // 1. Clear Screen
     ctx.fillStyle = C.COLORS.background;
     ctx.fillRect(0, 0, C.CANVAS_WIDTH, C.CANVAS_HEIGHT);
 
@@ -833,7 +774,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
     const { dungeon } = state;
     const { grid, tileSize } = dungeon;
     
-    // Viewport calculation to cull tiles
     const startCol = Math.floor(-state.camera.x / tileSize) - 1;
     const endCol = startCol + (C.CANVAS_WIDTH / tileSize) + 2;
     const startRow = Math.floor(-state.camera.y / tileSize) - 1;
@@ -848,42 +788,30 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
             const ty = y * tileSize;
 
             if (tile === TileType.FLOOR) {
-                // Checkboard subtle variant
                 const isAlt = (x + y) % 2 === 0;
                 ctx.fillStyle = isAlt ? '#0f172a' : '#1e293b'; 
                 ctx.fillRect(tx, ty, tileSize, tileSize);
                 
-                // Add Grid Lines
                 ctx.strokeStyle = '#1e293b'; 
                 ctx.lineWidth = 1;
                 ctx.strokeRect(tx, ty, tileSize, tileSize);
                 
-                // Random Floor Detail (deterministic by position)
                 if ((x * 17 + y * 23) % 7 === 0) {
                      ctx.fillStyle = 'rgba(255,255,255,0.03)';
                      ctx.fillRect(tx + 10, ty + 10, tileSize - 20, tileSize - 20);
                 }
 
             } else if (tile === TileType.WALL) {
-                // 2.5D Wall Rendering
-                // Draw Base (Shadow)
                 ctx.fillStyle = '#020617'; 
                 ctx.fillRect(tx, ty, tileSize, tileSize);
 
-                // Draw Wall Block (Top Face)
-                ctx.fillStyle = '#1e293b'; // Side/Top
+                ctx.fillStyle = '#1e293b'; 
                 const wallHeight = 12;
                 ctx.fillRect(tx, ty - wallHeight, tileSize, tileSize);
                 
-                // Top Highlight (Bevel)
                 ctx.fillStyle = '#334155'; 
                 ctx.fillRect(tx, ty - wallHeight, tileSize, 4);
 
-                // Front Face (Simulated by drawing the block slightly higher and darkening the bottom of the visible rect? 
-                // Actually the rect `ty-wallHeight` covers the tile. The "Front" is the gap we see if we looked from side, 
-                // but in top down the "Front" is the south face.)
-                
-                // Let's add a "Front Face" specifically for the bottom of the wall block
                 ctx.fillStyle = '#0f172a';
                 ctx.fillRect(tx, ty + tileSize - wallHeight, tileSize, wallHeight);
 
@@ -891,7 +819,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
                 ctx.fillStyle = '#450a0a';
                 ctx.fillRect(tx, ty, tileSize, tileSize);
                 
-                // Bars
                 ctx.fillStyle = '#7f1d1d';
                 ctx.fillRect(tx + 10, ty, 8, tileSize);
                 ctx.fillRect(tx + 26, ty, 8, tileSize);
@@ -900,16 +827,15 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
                 ctx.strokeStyle = '#000';
                 ctx.strokeRect(tx, ty, tileSize, tileSize);
             } else if (tile === TileType.DOOR_OPEN) {
-                ctx.fillStyle = '#1e293b'; // Dark Floor
+                ctx.fillStyle = '#1e293b'; 
                 ctx.fillRect(tx, ty, tileSize, tileSize);
-                // Threshold
                 ctx.fillStyle = '#334155';
                 ctx.fillRect(tx, ty + tileSize - 4, tileSize, 4);
             }
         }
     }
 
-    // 3. Render Particles (Behind Entities)
+    // 3. Render Particles
     state.particles.forEach(p => {
         ctx.fillStyle = p.color;
         ctx.globalAlpha = p.lifeTime / p.maxLifeTime;
@@ -917,7 +843,7 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         ctx.globalAlpha = 1.0;
     });
 
-    // 4. Render Items (Updated Visuals)
+    // 4. Render Items
     state.items.forEach(item => {
         const cx = item.x + item.width / 2;
         const cy = item.y + item.height / 2;
@@ -925,7 +851,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         ctx.save();
         ctx.translate(cx, cy);
 
-        // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath(); ctx.ellipse(0, 16, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
 
@@ -940,11 +865,28 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         } else if (item.itemType === ItemType.WEAPON_DROP) {
              drawWeaponDrop(ctx, item.payload as WeaponType, state.time);
         } else {
-             // Fallback
              ctx.fillStyle = item.color;
              ctx.rotate(state.time * 0.05);
              ctx.fillRect(-8, -8, 16, 16);
         }
+        ctx.restore();
+    });
+
+    // 4.5 Render Shadows (New Pass)
+    const shadowEntities = [state.player, ...state.enemies];
+    shadowEntities.forEach(e => {
+        if(e.isDead) return;
+        const cx = e.x + e.width / 2;
+        const cy = e.y + e.height;
+        const radius = e.width * 0.6;
+        
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(1, 0.4); 
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI*2);
+        ctx.fill();
         ctx.restore();
     });
 
@@ -966,18 +908,14 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
             const barHeight = 4;
             const barX = e.x + (e.width - barWidth) / 2;
             
-            // Dynamic Y-offset based on height to ensure it clears the head
             const barY = e.y - e.height - 10; 
 
-            // Border
             ctx.fillStyle = '#000000';
             ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
 
-            // Background
             ctx.fillStyle = '#450a0a';
             ctx.fillRect(barX, barY, barWidth, barHeight);
 
-            // Foreground
             ctx.fillStyle = '#ef4444';
             ctx.fillRect(barX, barY, barWidth * hpPct, barHeight);
         }
@@ -986,7 +924,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
     // 6. Render Projectiles
     state.projectiles.forEach(p => {
         ctx.save();
-        // Translate to Center of Projectile
         const cx = p.x + p.width / 2;
         const cy = p.y + p.height / 2;
         ctx.translate(cx, cy);
@@ -997,18 +934,15 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              const angle = Math.atan2(p.vy, p.vx);
              ctx.rotate(angle);
              
-             const s = p.width / 20; // Approx 1.5
+             const s = p.width / 20;
 
-             // Pixel-art style Crescent Slash
-             // Main Red Body
              ctx.fillStyle = '#dc2626'; 
              ctx.beginPath();
              ctx.moveTo(-6 * s, -14 * s);
-             ctx.quadraticCurveTo(18 * s, 0, -6 * s, 14 * s); // Forward Curve
-             ctx.quadraticCurveTo(4 * s, 0, -6 * s, -14 * s); // Inner Scoop
+             ctx.quadraticCurveTo(18 * s, 0, -6 * s, 14 * s); 
+             ctx.quadraticCurveTo(4 * s, 0, -6 * s, -14 * s); 
              ctx.fill();
 
-             // Core Brightness
              ctx.fillStyle = '#fca5a5';
              ctx.beginPath();
              ctx.moveTo(-2 * s, -10 * s);
@@ -1016,7 +950,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              ctx.quadraticCurveTo(4 * s, 0, -2 * s, -10 * s);
              ctx.fill();
              
-             // Speed Lines (Rects for pixel feel)
              ctx.fillStyle = '#ef4444';
              ctx.fillRect(-14 * s, -12 * s, 8 * s, 2 * s);
              ctx.fillRect(-18 * s, -4 * s, 12 * s, 2 * s);
@@ -1029,32 +962,26 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              ctx.fillStyle = '#d8b4fe';
              ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-6, -4); ctx.lineTo(-6, 4); ctx.fill();
         } else if (p.renderStyle === 'SPECTRAL_BLADE') {
-             // BOSS PROJECTILE
              const angle = Math.atan2(p.vy, p.vx);
              ctx.rotate(angle);
-             ctx.fillStyle = '#60a5fa'; // Blue
-             // Katana Shape
+             ctx.fillStyle = '#60a5fa'; 
              ctx.beginPath();
              ctx.moveTo(10, 0);
              ctx.lineTo(-10, -3);
              ctx.lineTo(-10, 3);
              ctx.fill();
-             // Hilt
              ctx.fillStyle = '#1e3a8a';
              ctx.fillRect(-14, -1, 4, 2);
-             // Trail
              ctx.fillStyle = '#3b82f6';
              ctx.globalAlpha = 0.5;
              ctx.fillRect(-20, -2, 10, 4);
              ctx.globalAlpha = 1.0;
 
         } else if (p.renderStyle === 'TOMBSTONE_ZONE') {
-             // Ground Effect
              ctx.globalAlpha = 0.3;
              ctx.fillStyle = '#4c1d95';
              ctx.beginPath(); ctx.arc(0, 0, p.width/2, 0, Math.PI*2); ctx.fill();
              
-             // Cracks
              ctx.globalAlpha = 1.0;
              ctx.strokeStyle = '#7c3aed';
              ctx.lineWidth = 2;
@@ -1065,7 +992,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              ctx.stroke();
 
         } else {
-             // Default Circle - Aligned to center now
              ctx.beginPath(); ctx.arc(0, 0, p.width/2, 0, Math.PI*2); ctx.fill();
         }
         ctx.restore();
@@ -1090,6 +1016,21 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         ctx.fillText(Math.floor(dn.value).toString(), 0, 0);
         ctx.restore();
     });
+
+    // 8. Lighting / Vignette
+    const playerCx = state.player.x + state.player.width/2;
+    const playerCy = state.player.y + state.player.height/2;
+    
+    // Create a large radial gradient centered on player
+    const grad = ctx.createRadialGradient(playerCx, playerCy, 150, playerCx, playerCy, 500);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(2,6,23,0.7)'); // Dark slate
+
+    // Apply gradient over visible viewport
+    const viewX = -state.camera.x;
+    const viewY = -state.camera.y;
+    ctx.fillStyle = grad;
+    ctx.fillRect(viewX, viewY, C.CANVAS_WIDTH, C.CANVAS_HEIGHT);
 
     ctx.restore();
 };

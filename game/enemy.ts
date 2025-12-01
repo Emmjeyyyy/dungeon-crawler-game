@@ -1,7 +1,7 @@
 
 import { GameState, EnemyType, BossState, EntityType, Enemy } from '../types';
 import * as C from '../constants';
-import { resolveMapCollision, rectIntersect } from './physics';
+import { resolveMapCollision, rectIntersect, resolveEntityCollision } from './physics';
 import { dealDamage, damagePlayer } from './eventHandlers';
 import { createParticles } from './spawners';
 
@@ -222,10 +222,11 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
     const pcx = state.player.x + state.player.width / 2;
     const pcy = state.player.y + state.player.height / 2;
 
+    // Resolve collisions between enemies and player to prevent stacking
+    resolveEntityCollision([state.player, ...state.enemies]);
+
     state.enemies.forEach(e => {
         // Projectile Zones Logic (e.g. Tombstone Zone Slow)
-        // Check if enemy is in a zone? No, zones affect player usually.
-        // But for boss logic separation:
         if (e.enemyType === EnemyType.BOSS) {
             updateKurogami(state, e);
             
