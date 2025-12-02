@@ -110,3 +110,29 @@ export function rectIntersect(r1: Rect, r2: Rect): boolean {
         r1.y + r1.height > r2.y
     );
 }
+
+// Special hitbox handling for Bosses (Tall Hurtbox)
+export function getHurtbox(entity: Entity): Rect {
+    if (entity.type === EntityType.ENEMY && (entity as any).enemyType === EnemyType.BOSS) {
+        // Boss is physically 64x64 at feet level.
+        // Visuals extend upwards significantly (scale 3, ~180px tall total).
+        // We create a hurtbox that covers the visual body.
+        return {
+            x: entity.x - 20, // Slightly wider to catch side hits
+            y: entity.y - 120, // Extend UP to catch head/body hits
+            width: entity.width + 40,
+            height: entity.height + 120
+        };
+    }
+    return entity;
+}
+
+export function checkCircleRect(circle: {x: number, y: number, r: number}, rect: Rect): boolean {
+    const closestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
+    const closestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+
+    const dx = circle.x - closestX;
+    const dy = circle.y - closestY;
+
+    return (dx * dx + dy * dy) < (circle.r * circle.r);
+}

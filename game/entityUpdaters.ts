@@ -1,6 +1,6 @@
 
 import { GameState, Enemy, ItemType } from '../types';
-import { resolveMapCollision, checkWall, rectIntersect } from './physics';
+import { resolveMapCollision, checkWall, rectIntersect, getHurtbox } from './physics';
 import { dealDamage } from './eventHandlers';
 import { createParticles } from './spawners';
 
@@ -78,7 +78,8 @@ export const updateProjectiles = (state: GameState) => {
         
         if (p.ownerId === state.player.id) {
             for (const e of state.enemies) {
-                if (rectIntersect(p, e)) {
+                // Use getHurtbox to allow hitting Boss upper body
+                if (rectIntersect(p, getHurtbox(e))) {
                     dealDamage(state, e, p.damage, false);
                     const sprayAngle = Math.atan2(p.vy, p.vx);
                     createParticles(state, e.x, e.y, 3, '#b91c1c', sprayAngle);

@@ -2,7 +2,7 @@
 import { GameState, ItemType, WeaponType, EntityType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
-import { resolveMapCollision, rectIntersect } from './physics';
+import { resolveMapCollision, rectIntersect, getHurtbox, checkCircleRect } from './physics';
 import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
 
 export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: number, y: number}) => {
@@ -86,9 +86,9 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         let hitCount = 0;
 
         state.enemies.forEach(e => {
-            const dist = Math.sqrt((e.x + e.width/2 - axeHeadX)**2 + (e.y + e.height/2 - axeHeadY)**2);
-            
-            if (dist < hitboxRadius && (!e.swirlTimer || e.swirlTimer <= 0)) {
+            const hurtbox = getHurtbox(e);
+            // Use Circle-Rect Check for improved Boss Hitbox
+            if (checkCircleRect({x: axeHeadX, y: axeHeadY, r: hitboxRadius}, hurtbox) && (!e.swirlTimer || e.swirlTimer <= 0)) {
                 const dmgMult = weaponConfig.secondary?.damageMult || 0.5;
                 const damage = player.stats.damage * dmgMult;
                 const isCrit = Math.random() < player.stats.critChance;
@@ -135,7 +135,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         if (state.time % 3 === 0) createParticles(state, player.x, player.y, 1, '#fbbf24');
 
         state.enemies.forEach(e => {
-            if (e.hitFlashTimer <= 0 && rectIntersect(player, e)) {
+            if (e.hitFlashTimer <= 0 && rectIntersect(player, getHurtbox(e))) {
                 const weaponConfig = C.WEAPONS[player.currentWeapon];
                 const dmgMult = weaponConfig.secondary?.damageMult || 1.0;
                 const damage = player.stats.damage * dmgMult;
@@ -215,8 +215,9 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
              state.enemies.forEach(e => {
                  if (player.swingHitList.includes(e.id)) return; 
 
-                 const dist = Math.sqrt((e.x + e.width/2 - axeX)**2 + (e.y + e.height/2 - axeY)**2);
-                 if (dist < axeHitboxRadius) {
+                 const hurtbox = getHurtbox(e);
+                 // Use Circle-Rect Check
+                 if (checkCircleRect({x: axeX, y: axeY, r: axeHitboxRadius}, hurtbox)) {
                      const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
                      const dmgMult = dmgBuff ? 1.5 : 1.0;
                      const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
@@ -263,14 +264,11 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
              state.enemies.forEach(e => {
                  if (player.swingHitList.includes(e.id)) return;
 
-                 const ex = e.x + e.width/2;
-                 const ey = e.y + e.height/2;
-                 const eRadius = Math.max(e.width, e.height) / 2;
-
+                 const hurtbox = getHurtbox(e);
                  let hit = false;
                  for(const p of points) {
-                     const dist = Math.sqrt((ex - p.x)**2 + (ey - p.y)**2);
-                     if (dist < eRadius + 5) {
+                     // Check if weapon point is inside hurtbox (Approximate width with r=15)
+                     if (checkCircleRect({x: p.x, y: p.y, r: 15}, hurtbox)) {
                          hit = true;
                          break;
                      }
