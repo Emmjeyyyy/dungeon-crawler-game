@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { Heart, Ghost, Sword, Map, Wind, MousePointer2, RefreshCw, DoorOpen, Zap } from 'lucide-react';
 import { AbilityType, ItemType, Item, WeaponType, Inventory } from '../../types';
@@ -43,18 +42,22 @@ const HUD: React.FC<HUDProps> = ({
       
       {/* Low HP Warning Overlay */}
       <div 
-        className={`absolute inset-0 bg-[radial-gradient(circle,transparent_0%,transparent_50%,rgba(220,38,38,0.4)_100%)] transition-opacity duration-1000 ${isLowHp ? 'opacity-100 animate-pulse' : 'opacity-0'}`}
+        className={`absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(220,38,38,0.3)_100%)] transition-opacity duration-500 ${isLowHp ? 'opacity-100 animate-pulse' : 'opacity-0'}`}
         style={{ pointerEvents: 'none' }}
-      ></div>
+      >
+          {isLowHp && (
+              <div className="absolute inset-0 border-[20px] border-red-900/20 blur-xl"></div>
+          )}
+      </div>
 
       {/* Top Bar */}
       <div className="flex justify-between items-start z-10">
         {/* Vitals */}
         <div className="w-80">
             {/* HP */}
-            <div className="bg-slate-900/90 rounded-sm p-1 border border-slate-800 shadow-xl mb-2 backdrop-blur-sm">
+            <div className={`rounded-sm p-1 border shadow-xl mb-2 backdrop-blur-sm transition-colors duration-300 ${isLowHp ? 'bg-red-950/80 border-red-500 animate-pulse' : 'bg-slate-900/90 border-slate-800'}`}>
                 <div className="flex items-center gap-2 text-red-500 font-bold mb-1 px-1 text-sm tracking-wider">
-                    <Heart size={14} fill="currentColor" />
+                    <Heart size={14} fill="currentColor" className={isLowHp ? 'animate-bounce' : ''} />
                     <span>{Math.ceil(hp)} / {Math.ceil(maxHp)}</span>
                 </div>
                 <div className="h-3 bg-black rounded-sm overflow-hidden relative">

@@ -9,12 +9,13 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const timer = boss.bossTimer || 0;
 
     // --- COLOR PALETTE (Regal & Dead) ---
-    const cArmorDark = '#1e293b'; // Slate 800
-    const cArmorMid = '#334155';  // Slate 700
+    // Updated colors to be visible against Slate 800/900 background
+    const cArmorDark = '#334155'; // Slate 700 (Lighter than floor)
+    const cArmorMid = '#475569';  // Slate 600
     const cBone = '#e2e8f0';      
     const cBoneShadow = '#94a3b8'; 
     const cGold = '#d97706';      
-    const cCloth = isP2 ? '#4c1d95' : '#7f1d1d'; // Deep Violet or Blood Red
+    const cCloth = isP2 ? '#5b21b6' : '#991b1b'; // Brighter Violet / Red
     const cGlow = isP2 ? '#a855f7' : '#ef4444';  // Neon Purple or Red
     const cBlade = isP2 ? '#818cf8' : '#cbd5e1'; // Spectral or Steel
 
@@ -27,8 +28,9 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const isCharging = state === BossState.CHARGING || state === BossState.CASTING;
     const shakeAmt = isCharging ? (Math.random() - 0.5) * 2 : 0;
     
-    // Fixed vertical offset to align feet to ground (approx 14px up)
-    ctx.translate(shakeAmt, shakeAmt + float - 14);
+    // Fixed vertical offset to align feet to ground
+    // Feet draw at approx +22 relative to origin. We need to shift up.
+    ctx.translate(shakeAmt, shakeAmt + float - 22);
 
     // --- AURA (Phase 2 Only) ---
     if (isP2) {
@@ -112,7 +114,7 @@ const drawKurogami = (ctx: CanvasRenderingContext2D, boss: Enemy, time: number) 
     const torsoY = -22 + breath * 1.5;
     ctx.translate(0, torsoY);
 
-    // Cape BEFORE Torso (Behind)
+    // Cape BEFORE Torso (Behind) - Drawn first so it is behind
     ctx.save();
     ctx.translate(0, -14);
     ctx.fillStyle = cCloth;
@@ -872,18 +874,19 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         ctx.restore();
     });
 
-    // 4.5 Render Shadows (New Pass)
+    // 4.5 Render Shadows (Enhanced Pass)
     const shadowEntities = [state.player, ...state.enemies];
     shadowEntities.forEach(e => {
         if(e.isDead) return;
         const cx = e.x + e.width / 2;
         const cy = e.y + e.height;
-        const radius = e.width * 0.6;
+        // Shadow width scales better with entity size
+        const radius = Math.max(8, e.width * 0.6);
         
         ctx.save();
         ctx.translate(cx, cy);
         ctx.scale(1, 0.4); 
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; // Darker shadows
         ctx.beginPath();
         ctx.arc(0, 0, radius, 0, Math.PI*2);
         ctx.fill();
@@ -1017,14 +1020,26 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
         ctx.restore();
     });
 
-    // 8. Lighting / Vignette
+    // 8. Lighting / Vignette with Low HP Pulse
     const playerCx = state.player.x + state.player.width/2;
     const playerCy = state.player.y + state.player.height/2;
     
+    // Dynamic Vignette Radius
+    const baseRadius = 150;
+    const hpPct = state.player.hp / state.player.maxHp;
+    const isLowHp = hpPct < 0.3;
+    const pulse = isLowHp ? Math.sin(state.time * 0.2) * 20 : 0;
+    
     // Create a large radial gradient centered on player
-    const grad = ctx.createRadialGradient(playerCx, playerCy, 150, playerCx, playerCy, 500);
+    const grad = ctx.createRadialGradient(playerCx, playerCy, baseRadius - pulse, playerCx, playerCy, 500);
     grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(1, 'rgba(2,6,23,0.7)'); // Dark slate
+    
+    if (isLowHp) {
+        // Red tinted vignette when low HP
+        grad.addColorStop(1, `rgba(40,0,0,${0.7 + Math.sin(state.time * 0.2) * 0.2})`);
+    } else {
+        grad.addColorStop(1, 'rgba(2,6,23,0.8)'); // Dark slate
+    }
 
     // Apply gradient over visible viewport
     const viewX = -state.camera.x;

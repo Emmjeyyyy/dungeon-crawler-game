@@ -3,7 +3,8 @@ import { Entity, Dungeon, TileType, Rect, EntityType, EnemyType } from '../types
 import * as C from '../constants';
 
 export function resolveEntityCollision(entities: Entity[]) {
-    const pushStrength = 0.5;
+    // Increased push strength for better separation (was 0.5)
+    const pushStrength = 0.8;
 
     for (let i = 0; i < entities.length; i++) {
         for (let j = i + 1; j < entities.length; j++) {
