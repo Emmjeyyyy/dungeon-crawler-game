@@ -325,7 +325,8 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
           
           // 15. Chrono Splitter
           if (player.inventory['chrono_splitter']) {
-              spawnEcho(state, player.x + player.width/2, player.y + player.height/2, 2); 
+              // Center the echo spawn. Echo is 24x24, so offset by 12.
+              spawnEcho(state, player.x + player.width/2 - 12, player.y + player.height/2 - 12, 2); 
               createParticles(state, player.x, player.y, 10, '#ffffff'); 
           }
 

@@ -3,6 +3,7 @@ import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemT
 import * as C from '../constants';
 import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
 import { createDungeon } from './dungeon';
+import { checkWall } from './physics';
 
 export const handleAttack = (state: GameState) => {
     const { player } = state;
@@ -98,9 +99,28 @@ export const handleAbility = (state: GameState, slot: 'PRIMARY' | 'SECONDARY') =
             if (enemyType === EnemyType.ELITE) tier = 2;
             if (enemyType === EnemyType.MYSTIC) tier = 3;
             const angle = (Math.PI * 2 / player.shadowStack.length) * i;
-            const dist = 40 + Math.random() * 20;
-            const ex = player.x + player.width/2 + Math.cos(angle) * dist;
-            const ey = player.y + player.height/2 + Math.sin(angle) * dist;
+            let dist = 40 + Math.random() * 20;
+            const echoSize = 24;
+
+            // Determine spawn position centered on calculated point
+            // Echo is 24x24, so subtract 12 to center
+            let ex = player.x + player.width/2 + Math.cos(angle) * dist - echoSize/2;
+            let ey = player.y + player.height/2 + Math.sin(angle) * dist - echoSize/2;
+
+            // Check if inside wall
+            if (checkWall(ex, ey, echoSize, echoSize, state.dungeon)) {
+                // Try closer
+                dist = 10;
+                ex = player.x + player.width/2 + Math.cos(angle) * dist - echoSize/2;
+                ey = player.y + player.height/2 + Math.sin(angle) * dist - echoSize/2;
+
+                if (checkWall(ex, ey, echoSize, echoSize, state.dungeon)) {
+                    // Fallback to player center
+                    ex = player.x + player.width/2 - echoSize/2;
+                    ey = player.y + player.height/2 - echoSize/2;
+                }
+            }
+
             spawnEcho(state, ex, ey, tier);
         });
         createParticles(state, player.x, player.y, 20, config.color);
@@ -188,20 +208,6 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
     // Apply Crit Damage Stat if it is a crit
     let finalAmount = amount;
     if (isCrit) {
-        // Remove the default 2x assumed by caller, apply correct stat
-        // Actually, the caller passed baseDmg * 2 if isCrit.
-        // We should probably rely on caller passing Base Damage and calculating crit here? 
-        // Or assume caller passed Base Damage.
-        // Current existing callers: 
-        //   Player Melee: deals `isCrit ? finalDmg * 2 : finalDmg`.
-        // Let's correct it here.
-        // The callers are inconsistent. Let's fix this in handleAttack/updatePlayer where damage is calculated.
-        // BUT for now, let's assume `amount` passed is already processed.
-        // Wait, if I want to support variable Crit Damage, I should refactor.
-        // However, looking at `updatePlayer`: `dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);`
-        // I will change `updatePlayer` logic to `dealDamage(state, e, finalDmg, isCrit)` and handle multipliers here.
-        // BUT for existing logic stability, I will just apply EXTRA crit damage here if it is crit.
-        
         // Base crit is 2.0. If `critDamage` is 2.5, we need to add 0.5x base damage.
         // `amount` is currently 2x base.
         // base = amount / 2.
