@@ -226,6 +226,8 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
     resolveEntityCollision([state.player, ...state.enemies]);
 
     state.enemies.forEach(e => {
+        if (e.hp <= 0) return;
+
         // Projectile Zones Logic (e.g. Tombstone Zone Slow)
         if (e.enemyType === EnemyType.BOSS) {
             updateKurogami(state, e);

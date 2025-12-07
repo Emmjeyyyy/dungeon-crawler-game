@@ -296,6 +296,7 @@ export const dealDamage = (state: GameState, target: Enemy, amount: number, isCr
     }
 
     if (target.hp <= 0 && !target.isDead) {
+         target.isDead = true;
          // --- ON KILL EFFECTS ---
          
          // 12. Spectral Choir
