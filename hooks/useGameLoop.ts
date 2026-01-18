@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { GameState, ItemType, WeaponType, AbilityType, Item, Inventory, EntityType, EnemyType } from '../types';
+import { GameState, ItemType, WeaponType, AbilityType, Item, Inventory, EntityType, EnemyType, GameMode } from '../types';
 import * as stateManager from '../game/state';
 import * as playerUpdater from '../game/player';
 import * as enemyUpdater from '../game/enemy';
@@ -15,25 +15,26 @@ export const useGameLoop = (
   canvasRef: React.RefObject<HTMLCanvasElement>,
   onLevelUp: () => void
 ) => {
-  const gameState = useRef<GameState>(stateManager.createInitialState());
+  const gameState = useRef<GameState>(stateManager.createInitialState(GameMode.ENDLESS));
   const requestRef = useRef<number>(0);
   const inputRef = useRef<Set<string>>(new Set());
   const mouseRef = useRef<{x: number, y: number}>({ x: 0, y: 0 });
 
   const [uiState, setUiState] = useState({
     hp: 100, maxHp: 100, xp: 0, maxXp: 100,
-    level: 1, floor: 1, echoCount: 0, isGameOver: false, isPaused: false, isTestMode: false,
+    level: 1, floor: 1, echoCount: 0, isGameOver: false, isGameWon: false, isPaused: false, isTestMode: false,
     activeAbility: AbilityType.SHADOW_CALL, activeAbilityCooldown: 0,
     secondaryAbility: null as AbilityType | null, secondaryAbilityCooldown: 0,
     combo: 0, activeBuffs: [] as {type: ItemType, timer: number}[],
     shadowStackCount: 0, interactionItem: null as Item | null,
     inventory: {} as Inventory, currentWeapon: WeaponType.BLOOD_BLADE,
-    cheats: { godMode: false, noCooldowns: false }
+    cheats: { godMode: false, noCooldowns: false },
+    gameMode: GameMode.ENDLESS
   });
 
   const togglePause = useCallback(() => {
       const state = gameState.current;
-      if (!state.isGameOver && !state.pendingLevelUp) {
+      if (!state.isGameOver && !state.isGameWon && !state.pendingLevelUp) {
           state.isPaused = !state.isPaused;
           // Force UI update so Pause Menu renders
           setUiState(prev => ({...prev, isPaused: state.isPaused}));
@@ -78,7 +79,7 @@ export const useGameLoop = (
 
   const update = useCallback(() => {
     const state = gameState.current;
-    if (state.isPaused || state.isGameOver || state.pendingLevelUp) return;
+    if (state.isPaused || state.isGameOver || state.isGameWon || state.pendingLevelUp) return;
 
     if (state.hitStop > 0) {
       state.hitStop--;
@@ -107,7 +108,7 @@ export const useGameLoop = (
         xp: state.player.xp, maxXp: state.player.maxXp,
         level: state.player.level, floor: state.dungeon.floor,
         echoCount: state.echoes.length,
-        isGameOver: state.isGameOver, isPaused: state.isPaused, isTestMode: state.isTestMode,
+        isGameOver: state.isGameOver, isGameWon: state.isGameWon, isPaused: state.isPaused, isTestMode: state.isTestMode,
         activeAbility: state.player.activeAbility,
         activeAbilityCooldown: state.player.abilityCooldown,
         secondaryAbility: null,
@@ -118,7 +119,8 @@ export const useGameLoop = (
         interactionItem: state.interactionItem,
         inventory: state.player.inventory,
         currentWeapon: state.player.currentWeapon,
-        cheats: state.cheats
+        cheats: state.cheats,
+        gameMode: state.gameMode
     });
 
   }, [onLevelUp]);
@@ -150,14 +152,20 @@ export const useGameLoop = (
       gameState.current.pendingLevelUp = false;
   };
 
+  const startGame = (mode: GameMode) => {
+      gameState.current = stateManager.createInitialState(mode);
+      setUiState(prev => ({...prev, isGameOver: false, isGameWon: false, isPaused: false, isTestMode: false, gameMode: mode}));
+  };
+
   const restartGame = () => {
-      gameState.current = stateManager.createInitialState();
-      setUiState(prev => ({...prev, isGameOver: false, isPaused: false, isTestMode: false}));
+      const currentMode = gameState.current.gameMode;
+      gameState.current = stateManager.createInitialState(currentMode);
+      setUiState(prev => ({...prev, isGameOver: false, isGameWon: false, isPaused: false, isTestMode: false}));
   };
 
   const enterTestMode = () => {
       gameState.current = stateManager.createTestState();
-      setUiState(prev => ({...prev, isGameOver: false, isPaused: false, isTestMode: true}));
+      setUiState(prev => ({...prev, isGameOver: false, isGameWon: false, isPaused: false, isTestMode: true, gameMode: GameMode.ENDLESS}));
   };
 
   // DEBUG ACTIONS
@@ -237,7 +245,7 @@ export const useGameLoop = (
   }
 
   return { 
-      uiState, applyUpgrade, restartGame, togglePause, enterTestMode,
+      uiState, applyUpgrade, startGame, restartGame, togglePause, enterTestMode,
       debugSpawnEnemy, debugSetWeapon, debugTriggerLevelUp, debugReset,
       debugToggleGodMode, debugToggleNoCooldowns, debugAddItem
   };

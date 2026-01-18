@@ -1,5 +1,5 @@
 
-import { GameState, Player, WeaponType, AbilityType, EntityType } from '../types';
+import { GameState, Player, WeaponType, AbilityType, EntityType, GameMode } from '../types';
 import * as C from '../constants';
 import { createDungeon, createTestDungeon } from './dungeon';
 
@@ -55,7 +55,7 @@ export const recalculateStats = (player: Player) => {
     player.stats.damageReduction = Math.min(0.9, player.stats.damageReduction);
 };
 
-export const createInitialState = (): GameState => {
+export const createInitialState = (mode: GameMode): GameState => {
   const dungeon = createDungeon(1);
   const startRoom = dungeon.rooms[0];
   const px = (startRoom.x + startRoom.width/2) * C.TILE_SIZE;
@@ -93,12 +93,13 @@ export const createInitialState = (): GameState => {
   };
 
   return {
+    gameMode: mode,
     dungeon, player,
     enemies: [], echoes: [], projectiles: [], particles: [], items: [], damageNumbers: [],
     interactionItem: null,
     camera: { x: camX, y: camY, shake: 0 },
     score: 0, time: 0, timeScale: 1.0,
-    hitStop: 0, isGameOver: false, isPaused: false, isTestMode: false, pendingLevelUp: false,
+    hitStop: 0, isGameOver: false, isGameWon: false, isPaused: false, isTestMode: false, pendingLevelUp: false,
     cheats: { godMode: false, noCooldowns: false }
   };
 };
@@ -140,12 +141,13 @@ export const createTestState = (): GameState => {
   };
 
   return {
+    gameMode: GameMode.ENDLESS,
     dungeon, player,
     enemies: [], echoes: [], projectiles: [], particles: [], items: [], damageNumbers: [],
     interactionItem: null,
     camera: { x: camX, y: camY, shake: 0 },
     score: 0, time: 0, timeScale: 1.0,
-    hitStop: 0, isGameOver: false, isPaused: false, isTestMode: true, pendingLevelUp: false,
+    hitStop: 0, isGameOver: false, isGameWon: false, isPaused: false, isTestMode: true, pendingLevelUp: false,
     cheats: { godMode: false, noCooldowns: false }
   };
 };

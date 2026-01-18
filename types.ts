@@ -10,8 +10,8 @@ export enum EntityType {
 }
 
 export enum GameMode {
-  DUNGEON = 'DUNGEON',
-  BOSS_RUSH = 'BOSS_RUSH' 
+  STORY = 'STORY',
+  ENDLESS = 'ENDLESS'
 }
 
 export enum EnemyType {
@@ -268,6 +268,7 @@ export interface Dungeon {
 }
 
 export interface GameState {
+  gameMode: GameMode;
   dungeon: Dungeon;
   player: Player;
   enemies: Enemy[];
@@ -289,6 +290,7 @@ export interface GameState {
   timeScale: number;
   hitStop: number;
   isGameOver: boolean;
+  isGameWon: boolean;
   isPaused: boolean;
   isTestMode: boolean;
   pendingLevelUp: boolean;

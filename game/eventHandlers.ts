@@ -1,5 +1,5 @@
 
-import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemType, BossState, Entity } from '../types';
+import { GameState, Enemy, AbilityType, WeaponType, EntityType, EnemyType, ItemType, BossState, Entity, GameMode } from '../types';
 import * as C from '../constants';
 import { createParticles, spawnDamageNumber, spawnEcho } from './spawners';
 import { createDungeon } from './dungeon';
@@ -401,6 +401,12 @@ export const damagePlayer = (state: GameState, amount: number, source?: Entity) 
 };
 
 export const nextFloor = (state: GameState) => {
+    // Check Story Mode Victory
+    if (state.gameMode === GameMode.STORY && state.dungeon.floor >= 5) {
+        state.isGameWon = true;
+        return;
+    }
+
     state.dungeon.floor++;
     state.dungeon = createDungeon(state.dungeon.floor);
     const startRoom = state.dungeon.rooms[0];
