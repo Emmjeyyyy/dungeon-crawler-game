@@ -127,7 +127,7 @@ export const createTestState = (): GameState => {
       attackCooldown: 0, maxAttackCooldown: 0, heavyAttackCooldown: 0, dashCooldown: 0,
       abilityCooldown: 0, secondaryAbilityCooldown: 0, interactionCooldown: 0,
       invulnTimer: 0, hitFlashTimer: 0, slashDashTimer: 0,
-      currentWeapon: WeaponType.EXECUTIONER_AXE,
+      currentWeapon: WeaponType.BLOOD_BLADE,
       inventory: {},
       activeAbility: AbilityType.SHADOW_CALL,
       stats: { 
