@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Heart, Ghost, Sword, Map, Wind, MousePointer2, RefreshCw, DoorOpen, Zap } from 'lucide-react';
 import { AbilityType, ItemType, Item, WeaponType, Inventory } from '../../types';
@@ -38,8 +39,10 @@ const HUD: React.FC<HUDProps> = ({
 
   // Get Floor Name
   let floorNameDisplay = `Floor ${floor}`;
-  if (floor <= STORY_FLOORS.length) {
+  if (floor > 0 && floor <= STORY_FLOORS.length) {
      floorNameDisplay = STORY_FLOORS[floor - 1].name;
+  } else if (floor === 0) {
+      floorNameDisplay = "TEST CHAMBER";
   } else {
      floorNameDisplay = `Infinite Void ${floor}`;
   }
@@ -251,16 +254,16 @@ const HUD: React.FC<HUDProps> = ({
 
               {/* Secondary Ability (Right Click) - DYNAMIC FROM WEAPON */}
               <div className="flex flex-col items-end">
-                  <div className={`relative w-12 h-12 bg-slate-900 rounded-lg border-2 flex items-center justify-center overflow-hidden transition-all border-amber-500`}>
+                  <div className={`relative w-16 h-16 bg-slate-900 rounded-lg border-2 flex items-center justify-center overflow-hidden transition-all border-amber-500`}>
                        {/* Icon / Info */}
-                       <Zap size={20} style={{ color: secondaryConfig?.color || '#fff' }} />
+                       <Zap size={28} style={{ color: secondaryConfig?.color || '#fff' }} />
                        {secondaryAbilityCooldown > 0 && (
-                           <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm">
+                           <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-lg">
                                {Math.ceil(secondaryAbilityCooldown / 60)}
                            </div>
                        )}
                        {/* Tooltip on hover if needed, or just label */}
-                       <div className="absolute bottom-0 w-full bg-black/70 text-[6px] text-center text-white py-0.5 uppercase tracking-wider font-bold truncate px-1">
+                       <div className="absolute bottom-0 w-full bg-black/70 text-[7px] text-center text-white py-0.5 uppercase font-bold truncate px-0.5">
                            {secondaryConfig?.name}
                        </div>
                   </div>

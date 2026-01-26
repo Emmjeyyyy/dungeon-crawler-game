@@ -1,7 +1,7 @@
 
 import { GameState, Enemy, ItemType } from '../types';
 import { resolveMapCollision, checkWall, rectIntersect, getHurtbox } from './physics';
-import { dealDamage } from './eventHandlers';
+import { dealDamage, damagePlayer } from './eventHandlers';
 import { createParticles } from './spawners';
 
 export const updateEchoes = (state: GameState) => {
@@ -77,6 +77,7 @@ export const updateProjectiles = (state: GameState) => {
         }
         
         if (p.ownerId === state.player.id) {
+            // Player Projectile hitting Enemies
             for (const e of state.enemies) {
                 // Use getHurtbox to allow hitting Boss upper body
                 if (rectIntersect(p, getHurtbox(e))) {
@@ -88,6 +89,30 @@ export const updateProjectiles = (state: GameState) => {
                         break;
                     }
                 }
+            }
+        } else {
+            // Enemy Projectile hitting Player
+            if (rectIntersect(p, state.player)) {
+                 // Check if it's a "Zone" projectile (like Boss Tombstone) which deals damage over time differently, 
+                 // or a standard projectile that hits once.
+                 
+                 // Standard projectile logic
+                 if (p.renderStyle !== 'TOMBSTONE_ZONE') {
+                     if (state.player.invulnTimer <= 0) {
+                         damagePlayer(state, p.damage, p);
+                         createParticles(state, state.player.x + state.player.width/2, state.player.y + state.player.height/2, 5, '#ef4444');
+                         if (!p.piercing) {
+                             p.lifeTime = 0;
+                         }
+                     }
+                 } else {
+                     // Tombstone Zone logic (DoT / Slow is handled separately or needs specific handling here)
+                     // In updateKurogami (boss logic), the zone is spawned.
+                     // Usually Zones stick around. We might damage player if they stand in it.
+                     if (state.time % 30 === 0 && state.player.invulnTimer <= 0) {
+                         damagePlayer(state, p.damage, p);
+                     }
+                 }
             }
         }
     });
