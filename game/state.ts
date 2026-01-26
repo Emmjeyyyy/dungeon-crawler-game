@@ -56,7 +56,7 @@ export const recalculateStats = (player: Player) => {
 };
 
 export const createInitialState = (mode: GameMode): GameState => {
-  const dungeon = createDungeon(1);
+  const dungeon = createDungeon(1, mode);
   const startRoom = dungeon.rooms[0];
   const px = (startRoom.x + startRoom.width/2) * C.TILE_SIZE;
   const py = (startRoom.y + startRoom.height/2) * C.TILE_SIZE;

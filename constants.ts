@@ -1,5 +1,5 @@
 
-import { AbilityType, WeaponType, ItemRarity, PassiveItem } from "./types";
+import { AbilityType, WeaponType, ItemRarity, PassiveItem, EnemyType } from "./types";
 
 export const CANVAS_WIDTH = 1280;
 export const CANVAS_HEIGHT = 720;
@@ -320,10 +320,17 @@ export const COLORS = {
   echo: '#22d3ee', 
   echoTier2: '#8b5cf6', 
   echoTier3: '#f43f5e', 
+  
+  // Enemy Colors
   enemyStandard: '#b91c1c', 
   enemyElite: '#ca8a04', 
   enemyMystic: '#7e22ce', 
   enemyBoss: '#dc2626', 
+  enemyVoidRatch: '#475569', 
+  enemyIronHulk: '#1e293b',
+  enemyAcolyte: '#14b8a6',
+  enemyStrider: '#0f172a',
+
   text: '#f8fafc',
   damagePlayer: '#ffffff',
   damageEnemy: '#ef4444',
@@ -341,3 +348,17 @@ export const COLORS = {
   rarityUncommon: '#84cc16', 
   rarityLegendary: '#ef4444' 
 };
+
+// Story Mode Floor Configuration
+export const STORY_FLOORS = [
+    { name: 'The Ashen Outskirts', pool: [EnemyType.STANDARD, EnemyType.VOID_RATCH] },
+    { name: 'Whispering Catacombs', pool: [EnemyType.STANDARD, EnemyType.CORRUPTED_ACOLYTE] },
+    { name: 'Forgotten Armory', pool: [EnemyType.IRON_HULK, EnemyType.VOID_RATCH] },
+    { name: 'The Iron Foundry', pool: [EnemyType.IRON_HULK, EnemyType.ELITE] },
+    { name: 'Crimson Altar', pool: [EnemyType.STANDARD] }, // Boss Floor (Floor 5)
+    { name: 'Hall of Mirrors', pool: [EnemyType.SHADOW_STRIDER, EnemyType.CORRUPTED_ACOLYTE] },
+    { name: 'Void Nexus', pool: [EnemyType.VOID_RATCH, EnemyType.ELITE] },
+    { name: 'Sanctum of Silence', pool: [EnemyType.SHADOW_STRIDER, EnemyType.IRON_HULK] },
+    { name: 'The Ascendant Stair', pool: [EnemyType.ELITE, EnemyType.MYSTIC] },
+    { name: 'Throne of the Curator', pool: [] } // Final Boss Floor (Floor 10)
+];

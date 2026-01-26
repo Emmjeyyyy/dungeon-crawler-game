@@ -1,5 +1,5 @@
 
-import { Dungeon, GameState, ItemType, Room, TileType, WeaponType, EntityType, EnemyType } from '../types';
+import { Dungeon, GameState, ItemType, Room, TileType, WeaponType, EntityType, EnemyType, GameMode } from '../types';
 import * as C from '../constants';
 import { rectIntersect } from './physics';
 import { createParticles } from './spawners';
@@ -30,10 +30,10 @@ export const createTestDungeon = (): Dungeon => {
         doorTiles: []
     }];
 
-    return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor: 0, portalRoomId: '' };
+    return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor: 0, floorName: 'Developer Test Chamber', portalRoomId: '' };
 };
 
-export const createDungeon = (floor: number): Dungeon => {
+export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
   const width = 64; // Slightly larger map
   const height = 64;
   const grid: TileType[][] = Array(height).fill(null).map(() => Array(width).fill(TileType.VOID));
@@ -154,7 +154,16 @@ export const createDungeon = (floor: number): Dungeon => {
 
   const portalRoomId = rooms.length > 0 ? rooms[rooms.length - 1].id : '';
 
-  return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor, portalRoomId };
+  let floorName = `Floor ${floor}`;
+  if (gameMode === GameMode.STORY && floor <= C.STORY_FLOORS.length) {
+      floorName = C.STORY_FLOORS[floor - 1].name;
+  } else if (gameMode === GameMode.ENDLESS) {
+      const prefixes = ["Infinite", "Void", "Eternal", "Cursed", "Shattered"];
+      const suffixes = ["Depths", "Sanctum", "Nexus", "Chamber", "Abyss"];
+      floorName = `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${suffixes[Math.floor(Math.random() * suffixes.length)]} ${floor}`;
+  }
+
+  return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor, floorName, portalRoomId };
 };
 
 export const updateDungeonState = (state: GameState) => {
@@ -199,13 +208,26 @@ const activateRoom = (state: GameState, room: Room) => {
         state.dungeon.grid[t.y][t.x] = TileType.DOOR_CLOSED;
     }
 
-    // BOSS SPAWN LOGIC (Every 5th Floor or similar logic)
-    // For now, let's just make floor 5 a boss floor
-    if (state.dungeon.floor % 5 === 0 && room.id === state.dungeon.portalRoomId) {
-        // Only spawn boss in the last room of the 5th floor
-        const cx = (room.x + room.width/2) * C.TILE_SIZE;
-        const cy = (room.y + room.height/2) * C.TILE_SIZE;
-        
+    const cx = (room.x + room.width/2) * C.TILE_SIZE;
+    const cy = (room.y + room.height/2) * C.TILE_SIZE;
+    
+    // --- BOSS SPAWN LOGIC ---
+    let isBossRoom = false;
+    
+    if (state.gameMode === GameMode.STORY) {
+        // Floor 5: Mid-Boss, Floor 10: Final Boss
+        if ((state.dungeon.floor === 5 || state.dungeon.floor === 10) && room.id === state.dungeon.portalRoomId) {
+             isBossRoom = true;
+        }
+    } else {
+        // Endless: Every 5 floors
+        if (state.dungeon.floor % 5 === 0 && room.id === state.dungeon.portalRoomId) {
+             isBossRoom = true;
+        }
+    }
+
+    if (isBossRoom) {
+        const hpMult = state.dungeon.floor;
         state.enemies.push({
             id: `boss-kurogami`,
             type: EntityType.ENEMY,
@@ -216,8 +238,8 @@ const activateRoom = (state: GameState, room: Room) => {
             facingX: 1, facingY: 0,
             color: C.COLORS.enemyBoss,
             isDead: false,
-            hp: 2000 + (state.dungeon.floor * 100), 
-            maxHp: 2000 + (state.dungeon.floor * 100),
+            hp: 2000 + (hpMult * 200), 
+            maxHp: 2000 + (hpMult * 200),
             damage: 25,
             attackCooldown: 0,
             maxAttackCooldown: 60,
@@ -225,32 +247,54 @@ const activateRoom = (state: GameState, room: Room) => {
             xpValue: 1000,
             agroRange: 9999,
             hitFlashTimer: 0,
-            scale: 3, // Visual Scale
+            scale: 3, 
             bossPhase: 1
         });
         return;
     }
 
-    const count = 2 + Math.floor(state.dungeon.floor) + Math.floor(Math.random() * 3);
-    const cx = (room.x + room.width/2) * C.TILE_SIZE;
-    const cy = (room.y + room.height/2) * C.TILE_SIZE;
+    // --- STANDARD SPAWN LOGIC ---
+    const count = 3 + Math.floor(state.dungeon.floor) + Math.floor(Math.random() * 3);
+    
+    let enemyPool: EnemyType[] = [EnemyType.STANDARD];
+
+    if (state.gameMode === GameMode.STORY && state.dungeon.floor <= C.STORY_FLOORS.length) {
+        const config = C.STORY_FLOORS[state.dungeon.floor - 1];
+        if (config.pool.length > 0) enemyPool = config.pool;
+    } else {
+        // Endless Mode Generation
+        if (state.dungeon.floor > 1) enemyPool.push(EnemyType.VOID_RATCH);
+        if (state.dungeon.floor > 3) enemyPool.push(EnemyType.CORRUPTED_ACOLYTE);
+        if (state.dungeon.floor > 5) enemyPool.push(EnemyType.ELITE);
+        if (state.dungeon.floor > 7) enemyPool.push(EnemyType.IRON_HULK);
+        if (state.dungeon.floor > 9) enemyPool.push(EnemyType.SHADOW_STRIDER);
+        if (state.dungeon.floor > 12) enemyPool.push(EnemyType.MYSTIC);
+    }
 
     for(let j=0; j<count; j++) {
         const ex = cx + (Math.random() - 0.5) * (room.width * C.TILE_SIZE * 0.6);
         const ey = cy + (Math.random() - 0.5) * (room.height * C.TILE_SIZE * 0.6);
         
-        const roll = Math.random();
-        let type = EnemyType.STANDARD;
+        const type = enemyPool[Math.floor(Math.random() * enemyPool.length)];
+        
         let scale = 1;
         let hp = 30 + (state.dungeon.floor * 5);
+        let damage = 5 + state.dungeon.floor;
         let color = C.COLORS.enemyStandard;
         let size = 18;
 
-        if (state.dungeon.floor > 2 && roll > 0.8) {
-            type = EnemyType.ELITE;
-            scale = 1.5;
-            hp *= 2;
-            color = C.COLORS.enemyElite;
+        if (type === EnemyType.ELITE) { 
+            scale = 1.5; hp *= 2.0; color = C.COLORS.enemyElite; damage *= 1.5;
+        } else if (type === EnemyType.MYSTIC) {
+            color = C.COLORS.enemyMystic;
+        } else if (type === EnemyType.VOID_RATCH) {
+            size = 14; hp *= 0.6; damage *= 0.8; color = C.COLORS.enemyVoidRatch;
+        } else if (type === EnemyType.IRON_HULK) {
+            size = 24; hp *= 3.0; damage *= 2.0; color = C.COLORS.enemyIronHulk;
+        } else if (type === EnemyType.CORRUPTED_ACOLYTE) {
+            color = C.COLORS.enemyAcolyte;
+        } else if (type === EnemyType.SHADOW_STRIDER) {
+            color = C.COLORS.enemyStrider; damage *= 1.8; hp *= 0.8;
         }
 
         const w = size * scale;
@@ -267,11 +311,11 @@ const activateRoom = (state: GameState, room: Room) => {
             color: color,
             isDead: false,
             hp, maxHp: hp,
-            damage: 5 + state.dungeon.floor,
+            damage,
             attackCooldown: 0,
             maxAttackCooldown: 60,
             targetId: null,
-            xpValue: 10 * (type === EnemyType.ELITE ? 3 : 1),
+            xpValue: 10 + (hp / 5),
             agroRange: 1000, 
             hitFlashTimer: 0,
             scale,

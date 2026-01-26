@@ -2,7 +2,7 @@
 import React from 'react';
 import { Heart, Ghost, Sword, Map, Wind, MousePointer2, RefreshCw, DoorOpen, Zap } from 'lucide-react';
 import { AbilityType, ItemType, Item, WeaponType, Inventory } from '../../types';
-import { WEAPONS, PASSIVE_ITEMS } from '../../constants';
+import { WEAPONS, PASSIVE_ITEMS, STORY_FLOORS } from '../../constants';
 
 interface HUDProps {
   hp: number;
@@ -36,6 +36,20 @@ const HUD: React.FC<HUDProps> = ({
   const secondaryConfig = weaponConfig.secondary;
 
   const isLowHp = hpPercent < 30;
+
+  // Get Floor Name
+  // Note: In the refactored loop, we need to pass floorName, but for now we can infer it or rely on a new prop if we updated useGameLoop.
+  // Ideally, useGameLoop passes floorName. If not available in props yet, we fallback.
+  // Wait, I updated Dungeon type to have floorName. I should add it to HUDProps in a real refactor.
+  // Since I can't easily change useGameLoop return type without breaking interface unless I change UI state there too.
+  // Let's assume standard names for now based on floor index since we have the constant available.
+  
+  let floorNameDisplay = `Floor ${floor}`;
+  if (floor <= STORY_FLOORS.length) {
+     floorNameDisplay = STORY_FLOORS[floor - 1].name;
+  } else {
+     floorNameDisplay = `Infinite Void ${floor}`;
+  }
 
   return (
     <div className="absolute top-0 left-0 w-full h-full p-6 pointer-events-none flex flex-col justify-between font-sans">
@@ -84,11 +98,11 @@ const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Center: Location */}
-        <div className="bg-gradient-to-b from-slate-900/80 to-transparent px-8 py-3 rounded-b-xl border-x border-b border-slate-800 flex flex-col items-center backdrop-blur-md">
+        <div className="bg-gradient-to-b from-slate-900/80 to-transparent px-12 py-4 rounded-b-xl border-x border-b border-slate-800 flex flex-col items-center backdrop-blur-md shadow-2xl">
             <div className="flex items-center gap-2 text-amber-500 font-black uppercase tracking-[0.2em] text-sm">
                 <Map size={14} /> Floor {floor}
             </div>
-            <div className="text-slate-500 text-[10px] tracking-widest mt-1 uppercase opacity-70">Sanctum of Echoes</div>
+            <div className="text-slate-300 text-xs tracking-widest mt-1 uppercase font-bold text-center w-64">{floorNameDisplay}</div>
         </div>
 
         {/* Right: Resources (Echoes only now) */}

@@ -394,6 +394,10 @@ const drawCharacter = (
     if (e && e.enemyType === EnemyType.MYSTIC) {
         ctx.fillStyle = entity.color;
         ctx.beginPath(); ctx.moveTo(-8, -10 + bob); ctx.lineTo(0, 5 + bob); ctx.lineTo(8, -10 + bob); ctx.fill();
+    } else if (e && e.enemyType === EnemyType.SHADOW_STRIDER) {
+        // Legless / Hovering ghost look
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath(); ctx.ellipse(0, -5 + bob, 6, 12, 0, 0, Math.PI*2); ctx.fill();
     } else {
         ctx.beginPath(); ctx.moveTo(-4, -8); ctx.lineTo(-6 + legOffset, 0); ctx.lineTo(-2 + legOffset, 0); ctx.lineTo(0, -8); ctx.fill();
         ctx.beginPath(); ctx.moveTo(4, -8); ctx.lineTo(6 - legOffset, 0); ctx.lineTo(2 - legOffset, 0); ctx.lineTo(0, -8); ctx.fill();
@@ -415,6 +419,22 @@ const drawCharacter = (
         ctx.fillStyle = '#facc15'; ctx.fillRect(-8, -16, 16, 8); 
     } else if ((e && e.enemyType === EnemyType.MYSTIC) || (echo && echo.tier === 3)) {
         ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.lineTo(0, -20); ctx.fill();
+    } else if (e && e.enemyType === EnemyType.VOID_RATCH) {
+        // Small Triangle / Rat like
+        ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(0, -8); ctx.fill();
+    } else if (e && e.enemyType === EnemyType.IRON_HULK) {
+        // Big Heavy Square
+        ctx.fillRect(-12, -18, 24, 20);
+        ctx.fillStyle = '#94a3b8'; ctx.fillRect(-10, -16, 20, 16);
+    } else if (e && e.enemyType === EnemyType.CORRUPTED_ACOLYTE) {
+        // Robed Figure
+        ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(4, -16); ctx.lineTo(-4, -16); ctx.fill();
+        // Staff
+        ctx.fillStyle = '#b45309'; ctx.fillRect(6, -16, 2, 20);
+        ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(7, -18, 3, 0, Math.PI*2); ctx.fill();
+    } else if (e && e.enemyType === EnemyType.SHADOW_STRIDER) {
+        // Spiky Ninja
+        ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(8, -14); ctx.lineTo(0, -8); ctx.lineTo(-8, -14); ctx.fill();
     } else if (p) {
         const cArmor = hitFlash ? '#ffffff' : '#cbd5e1';
         const cArmorDark = hitFlash ? '#ffffff' : '#94a3b8';
@@ -460,6 +480,18 @@ const drawCharacter = (
         } else if (e.enemyType === EnemyType.MYSTIC) {
             ctx.beginPath(); ctx.arc(0, -5, 6, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#ffff00'; ctx.fillRect(-2, -6, 1, 1); ctx.fillRect(2, -6, 1, 1);
+        } else if (e.enemyType === EnemyType.IRON_HULK) {
+            // Helmet
+            ctx.fillRect(-8, -6, 16, 8);
+            ctx.fillStyle = '#000'; ctx.fillRect(-4, -4, 8, 2); // Visor
+        } else if (e.enemyType === EnemyType.CORRUPTED_ACOLYTE) {
+            // Hood
+             ctx.beginPath(); ctx.arc(0, -2, 5, Math.PI, 0); ctx.fill();
+             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, -1, 3, 0, Math.PI*2); ctx.fill();
+        } else if (e.enemyType === EnemyType.SHADOW_STRIDER) {
+            // Mask
+            ctx.fillRect(-4, -6, 8, 6);
+            ctx.fillStyle = '#a855f7'; ctx.fillRect(-2, -4, 4, 1); // Eye slit
         } else {
             ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI*2); ctx.fill();
         }
@@ -994,6 +1026,13 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              ctx.moveTo(-10, -10); ctx.lineTo(10, 10);
              ctx.stroke();
 
+        } else if (p.renderStyle === 'VOID_ORB') {
+             // For Acolyte Projectile
+             const flicker = Math.random() > 0.5;
+             ctx.fillStyle = flicker ? '#facc15' : '#a855f7'; // Purple/Yellow chaos
+             ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
+             ctx.strokeStyle = '#4c1d95';
+             ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.stroke();
         } else {
              ctx.beginPath(); ctx.arc(0, 0, p.width/2, 0, Math.PI*2); ctx.fill();
         }

@@ -401,14 +401,16 @@ export const damagePlayer = (state: GameState, amount: number, source?: Entity) 
 };
 
 export const nextFloor = (state: GameState) => {
-    // Check Story Mode Victory
-    if (state.gameMode === GameMode.STORY && state.dungeon.floor >= 5) {
+    // Check Story Mode Victory (Floor 10 is Boss, Victory after clearing it)
+    if (state.gameMode === GameMode.STORY && state.dungeon.floor >= 10) {
         state.isGameWon = true;
         return;
     }
 
     state.dungeon.floor++;
-    state.dungeon = createDungeon(state.dungeon.floor);
+    // Pass GameMode to createDungeon
+    state.dungeon = createDungeon(state.dungeon.floor, state.gameMode);
+    
     const startRoom = state.dungeon.rooms[0];
     state.player.x = (startRoom.x + startRoom.width/2) * C.TILE_SIZE;
     state.player.y = (startRoom.y + startRoom.height/2) * C.TILE_SIZE;

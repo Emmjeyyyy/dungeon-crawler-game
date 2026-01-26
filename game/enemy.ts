@@ -247,7 +247,7 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
             return;
         }
 
-        // --- STANDARD ENEMY LOGIC ---
+        // --- ENEMY LOGIC ---
         e.vx *= 0.9;
         e.vy *= 0.9;
         
@@ -255,18 +255,88 @@ export const updateEnemies = (state: GameState, onLevelUp: () => void) => {
         const ecy = e.y + e.height / 2;
         const dist = Math.sqrt((pcx - ecx)**2 + (pcy - ecy)**2);
         
-        if (dist < e.agroRange) {
-            const angle = Math.atan2(pcy - ecy, pcx - ecx);
-            const speed = e.enemyType === EnemyType.ELITE ? 1.2 : 2.0;
-            e.vx += Math.cos(angle) * speed * 0.1;
-            e.vy += Math.sin(angle) * speed * 0.1;
-            e.facingX = Math.sign(Math.cos(angle));
+        // --- TYPE SPECIFIC BEHAVIOR ---
 
-            const overlapThreshold = (state.player.width/2 + e.width/2) * 0.9;
-            if (dist < overlapThreshold && e.attackCooldown <= 0 && state.player.invulnTimer <= 0) {
-                damagePlayer(state, e.damage, e);
-                e.attackCooldown = 60;
+        if (e.enemyType === EnemyType.CORRUPTED_ACOLYTE) {
+            // Ranged Behavior: Keep distance
+            const keepDist = 200;
+            if (dist < e.agroRange) {
+                const angle = Math.atan2(pcy - ecy, pcx - ecx);
+                if (dist < keepDist) {
+                    // Flee
+                    e.vx -= Math.cos(angle) * 1.0;
+                    e.vy -= Math.sin(angle) * 1.0;
+                } else {
+                    // Slight approach
+                    e.vx += Math.cos(angle) * 0.5;
+                    e.vy += Math.sin(angle) * 0.5;
+                }
+                e.facingX = Math.sign(Math.cos(angle));
+
+                // Shoot
+                if (e.attackCooldown <= 0) {
+                     state.projectiles.push({
+                        id: `enemy-proj-${Math.random()}`,
+                        type: EntityType.PROJECTILE,
+                        ownerId: e.id,
+                        x: ecx, y: ecy,
+                        width: 10, height: 10,
+                        vx: Math.cos(angle) * 6, vy: Math.sin(angle) * 6,
+                        damage: e.damage,
+                        color: C.COLORS.enemyAcolyte,
+                        lifeTime: 80,
+                        isDead: false,
+                        renderStyle: 'VOID_ORB'
+                    });
+                    e.attackCooldown = 120; // 2 seconds
+                }
             }
+
+        } else if (e.enemyType === EnemyType.SHADOW_STRIDER) {
+            // Fast, bursty movement
+            if (dist < e.agroRange) {
+                const angle = Math.atan2(pcy - ecy, pcx - ecx);
+                // Move very fast in bursts
+                const speed = (state.time % 60 < 20) ? 6.0 : 0.5; 
+                e.vx += Math.cos(angle) * speed * 0.2;
+                e.vy += Math.sin(angle) * speed * 0.2;
+                e.facingX = Math.sign(Math.cos(angle));
+            }
+
+        } else if (e.enemyType === EnemyType.VOID_RATCH) {
+            // Swarm behavior, very fast acceleration but low top speed
+             if (dist < e.agroRange) {
+                const angle = Math.atan2(pcy - ecy, pcx - ecx);
+                e.vx += Math.cos(angle) * 0.5;
+                e.vy += Math.sin(angle) * 0.5;
+                e.facingX = Math.sign(Math.cos(angle));
+            }
+
+        } else if (e.enemyType === EnemyType.IRON_HULK) {
+            // Very slow, constant pressure
+             if (dist < e.agroRange) {
+                const angle = Math.atan2(pcy - ecy, pcx - ecx);
+                e.vx += Math.cos(angle) * 0.1;
+                e.vy += Math.sin(angle) * 0.1;
+                e.facingX = Math.sign(Math.cos(angle));
+            }
+
+        } else {
+            // Standard / Elite / Mystic
+            if (dist < e.agroRange) {
+                const angle = Math.atan2(pcy - ecy, pcx - ecx);
+                const speed = e.enemyType === EnemyType.ELITE ? 1.2 : 2.0;
+                e.vx += Math.cos(angle) * speed * 0.1;
+                e.vy += Math.sin(angle) * speed * 0.1;
+                e.facingX = Math.sign(Math.cos(angle));
+            }
+        }
+
+        // Contact Damage logic (Generic)
+        const overlapThreshold = (state.player.width/2 + e.width/2) * 0.9;
+        if (dist < overlapThreshold && e.attackCooldown <= 0 && state.player.invulnTimer <= 0) {
+            damagePlayer(state, e.damage, e);
+            e.attackCooldown = 60;
         }
         
         if (e.attackCooldown > 0) e.attackCooldown--;

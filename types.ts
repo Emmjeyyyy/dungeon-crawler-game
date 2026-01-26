@@ -18,7 +18,12 @@ export enum EnemyType {
   STANDARD = 'STANDARD', 
   ELITE = 'ELITE',       
   MYSTIC = 'MYSTIC',     
-  BOSS = 'BOSS'
+  BOSS = 'BOSS',
+  // New Types
+  VOID_RATCH = 'VOID_RATCH',
+  IRON_HULK = 'IRON_HULK',
+  CORRUPTED_ACOLYTE = 'CORRUPTED_ACOLYTE',
+  SHADOW_STRIDER = 'SHADOW_STRIDER'
 }
 
 export enum BossState {
@@ -264,6 +269,7 @@ export interface Dungeon {
   grid: TileType[][];
   rooms: Room[];
   floor: number;
+  floorName: string; // New: Unique name for the floor
   portalRoomId: string; 
 }
 
