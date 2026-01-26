@@ -121,11 +121,8 @@ export const updateItems = (state: GameState) => {
              } else {
                  if (item.itemType === ItemType.BLOOD_VIAL) {
                      state.player.hp = Math.min(state.player.hp + 25, state.player.maxHp);
-                 } else if (item.itemType === ItemType.BUFF_DAMAGE) {
-                     state.player.activeBuffs.push({type: ItemType.BUFF_DAMAGE, timer: 600, value: 1.5});
-                 } else if (item.itemType === ItemType.BUFF_SPEED) {
-                     state.player.activeBuffs.push({type: ItemType.BUFF_SPEED, timer: 600, value: 1.5});
-                 }
+                 } 
+                 // Buff pickup logic removed
                  item.isDead = true;
              }
         }

@@ -20,8 +20,6 @@ export const handleAttack = (state: GameState) => {
     player.isAttacking = true;
     player.swingHitList = []; 
 
-    const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
-    const dmgMult = dmgBuff ? 1.5 : 1.0;
     const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
 
     if (player.currentWeapon === WeaponType.SHADOW_BOW) {
@@ -52,7 +50,7 @@ export const handleAttack = (state: GameState) => {
                 width: 14, height: 14,
                 vx: Math.cos(player.aimAngle + angleOffset) * 15,
                 vy: Math.sin(player.aimAngle + angleOffset) * 15,
-                damage: player.stats.damage * dmgMult * comboMult,
+                damage: player.stats.damage * comboMult,
                 color: weapon.color,
                 lifeTime: 60,
                 isDead: false,

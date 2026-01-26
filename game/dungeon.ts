@@ -30,7 +30,7 @@ export const createTestDungeon = (): Dungeon => {
         doorTiles: []
     }];
 
-    return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor: 0, floorName: 'Developer Test Chamber', portalRoomId: '' };
+    return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor: 0, floorName: 'Developer Test Chamber', portalRoomId: '', weaponRoomId: '' };
 };
 
 export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
@@ -39,9 +39,13 @@ export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
   const grid: TileType[][] = Array(height).fill(null).map(() => Array(width).fill(TileType.VOID));
   const rooms: Room[] = [];
 
-  const roomCount = 8 + Math.floor(floor * 0.5);
+  const targetRoomCount = 8 + Math.floor(floor * 0.5);
+  const minRooms = 5;
+  let attempts = 0;
+  const maxAttempts = 500;
   
-  for (let i = 0; i < roomCount; i++) {
+  while ((rooms.length < targetRoomCount || rooms.length < minRooms) && attempts < maxAttempts) {
+    attempts++;
     const roll = Math.random();
     let w, h;
 
@@ -61,10 +65,10 @@ export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
     const y = Math.floor(Math.random() * (height - h - 4)) + 2;
 
     const newRoom: Room = { 
-        id: `room-${i}`,
+        id: `room-${rooms.length}`,
         x, y, width: w, height: h,
-        isCleared: i === 0,
-        isActive: i === 0,
+        isCleared: rooms.length === 0,
+        isActive: rooms.length === 0,
         doorTiles: []
     };
     
@@ -154,6 +158,17 @@ export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
 
   const portalRoomId = rooms.length > 0 ? rooms[rooms.length - 1].id : '';
 
+  // Select Guaranteed Weapon Room
+  // Choose a room that is NOT the start room (index 0) and NOT the portal room (last index)
+  let weaponRoomId = '';
+  const candidateRooms = rooms.filter((r, i) => i !== 0 && i !== rooms.length - 1);
+  if (candidateRooms.length > 0) {
+      weaponRoomId = candidateRooms[Math.floor(Math.random() * candidateRooms.length)].id;
+  } else if (rooms.length > 1) {
+      // Fallback if map is tiny (unlikely with minRooms=5 logic)
+      weaponRoomId = rooms[0].id;
+  }
+
   let floorName = `Floor ${floor}`;
   if (gameMode === GameMode.STORY && floor <= C.STORY_FLOORS.length) {
       floorName = C.STORY_FLOORS[floor - 1].name;
@@ -163,7 +178,7 @@ export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
       floorName = `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${suffixes[Math.floor(Math.random() * suffixes.length)]} ${floor}`;
   }
 
-  return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor, floorName, portalRoomId };
+  return { width, height, tileSize: C.TILE_SIZE, grid, rooms, floor, floorName, portalRoomId, weaponRoomId };
 };
 
 export const updateDungeonState = (state: GameState) => {
@@ -355,23 +370,42 @@ const clearRoom = (state: GameState, room: Room) => {
         return; 
     }
 
+    // Check for Guaranteed Weapon Room
+    if (room.id === state.dungeon.weaponRoomId) {
+        const weapons = Object.values(WeaponType);
+        const payload = weapons[Math.floor(Math.random() * weapons.length)];
+        
+        state.items.push({
+            id: `guaranteed-weapon-${Math.random()}`,
+            type: EntityType.ITEM,
+            itemType: ItemType.WEAPON_DROP,
+            x: cx, y: cy,
+            width: 24, height: 24,
+            vx: 0, vy: 0,
+            color: C.COLORS.weaponDrop,
+            isDead: false,
+            value: 0, 
+            floatOffset: Math.random(),
+            payload
+        });
+        createParticles(state, cx, cy, 15, C.COLORS.weaponDrop);
+        // Do not return, can still drop a blood vial potentially? 
+        // No, let's make the weapon the sole reward to avoid clutter.
+        return;
+    }
+
     const roll = Math.random();
     let itemType = ItemType.BLOOD_VIAL;
     let color = C.COLORS.heal;
     let payload = null;
     
-    if (roll > 0.9) {
+    // Removed Buff drops, now only Weapon Drop chance or Blood Vial
+    if (roll > 0.95) {
         itemType = ItemType.WEAPON_DROP;
         color = C.COLORS.weaponDrop;
         const weapons = Object.values(WeaponType);
         payload = weapons[Math.floor(Math.random() * weapons.length)];
-    } else if (roll > 0.6) {
-        itemType = ItemType.BUFF_DAMAGE;
-        color = C.COLORS.buffDamage;
-    } else if (roll > 0.4) {
-        itemType = ItemType.BUFF_SPEED;
-        color = C.COLORS.buffSpeed;
-    }
+    } 
 
     state.items.push({
         id: `item-${Math.random()}`,

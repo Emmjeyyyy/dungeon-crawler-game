@@ -1,4 +1,3 @@
-
 import { GameState, WeaponType, EnemyType, ItemType, TileType, Player, Enemy, Echo, EntityType, BossState } from '../types';
 import * as C from '../constants';
 
@@ -730,29 +729,6 @@ const drawBloodVial = (ctx: CanvasRenderingContext2D, time: number) => {
     ctx.beginPath(); ctx.ellipse(-2, 2, 1.5, 3, Math.PI/4, 0, Math.PI*2); ctx.fill();
 }
 
-const drawBuffIcon = (ctx: CanvasRenderingContext2D, type: 'DAMAGE' | 'SPEED', time: number) => {
-    const yOff = Math.sin(time * 0.1) * 3;
-    ctx.translate(0, yOff);
-    
-    const color = type === 'DAMAGE' ? '#ef4444' : '#3b82f6';
-    
-    ctx.fillStyle = type === 'DAMAGE' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)';
-    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
-
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.moveTo(0, -10); ctx.lineTo(9, -5); ctx.lineTo(9, 5); ctx.lineTo(0, 10); ctx.lineTo(-9, 5); ctx.lineTo(-9, -5);
-    ctx.fill();
-
-    ctx.fillStyle = color;
-    if (type === 'DAMAGE') {
-        ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(-4, -2); ctx.lineTo(0, -8); ctx.lineTo(4, -2); ctx.fill();
-        ctx.fillRect(-3, -2, 6, 2); 
-    } else {
-        ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(2, -6); ctx.lineTo(6, -2); ctx.lineTo(4, 4); ctx.lineTo(-2, 2); ctx.fill();
-    }
-}
-
 const drawWeaponDrop = (ctx: CanvasRenderingContext2D, weaponType: WeaponType, time: number) => {
     const yOff = Math.sin(time * 0.1) * 3;
     ctx.translate(0, yOff);
@@ -892,10 +868,6 @@ export const renderScene = (ctx: CanvasRenderingContext2D, state: GameState) => 
              drawPortal(ctx, state.time);
         } else if (item.itemType === ItemType.BLOOD_VIAL) {
              drawBloodVial(ctx, state.time);
-        } else if (item.itemType === ItemType.BUFF_DAMAGE) {
-             drawBuffIcon(ctx, 'DAMAGE', state.time);
-        } else if (item.itemType === ItemType.BUFF_SPEED) {
-             drawBuffIcon(ctx, 'SPEED', state.time);
         } else if (item.itemType === ItemType.WEAPON_DROP) {
              drawWeaponDrop(ctx, item.payload as WeaponType, state.time);
         } else {

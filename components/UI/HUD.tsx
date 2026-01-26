@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Heart, Ghost, Sword, Map, Wind, MousePointer2, RefreshCw, DoorOpen, Zap } from 'lucide-react';
 import { AbilityType, ItemType, Item, WeaponType, Inventory } from '../../types';
@@ -38,12 +37,6 @@ const HUD: React.FC<HUDProps> = ({
   const isLowHp = hpPercent < 30;
 
   // Get Floor Name
-  // Note: In the refactored loop, we need to pass floorName, but for now we can infer it or rely on a new prop if we updated useGameLoop.
-  // Ideally, useGameLoop passes floorName. If not available in props yet, we fallback.
-  // Wait, I updated Dungeon type to have floorName. I should add it to HUDProps in a real refactor.
-  // Since I can't easily change useGameLoop return type without breaking interface unless I change UI state there too.
-  // Let's assume standard names for now based on floor index since we have the constant available.
-  
   let floorNameDisplay = `Floor ${floor}`;
   if (floor <= STORY_FLOORS.length) {
      floorNameDisplay = STORY_FLOORS[floor - 1].name;
@@ -229,11 +222,11 @@ const HUD: React.FC<HUDProps> = ({
             <div className="flex gap-4">
                 {activeBuffs.map((buff, i) => (
                     <div key={i} className="flex flex-col items-center animate-in fade-in slide-in-from-bottom duration-500">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center border-2 bg-slate-950 shadow-lg ${buff.type === ItemType.BUFF_DAMAGE ? 'border-red-900 text-red-500' : 'border-blue-900 text-blue-500'}`}>
-                            {buff.type === ItemType.BUFF_DAMAGE ? <Sword size={20} /> : <Wind size={20} />}
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center border-2 bg-slate-950 shadow-lg ${buff.type === ItemType.BUFF_ATTACK_SPEED ? 'border-blue-900 text-blue-500' : 'border-slate-700 text-slate-500'}`}>
+                            {buff.type === ItemType.BUFF_ATTACK_SPEED ? <Wind size={20} /> : <Zap size={20} />}
                         </div>
                         <div className="h-1 w-full bg-slate-900 mt-1 rounded overflow-hidden border border-slate-800">
-                            <div className={`h-full transition-all ${buff.type === ItemType.BUFF_DAMAGE ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${(buff.timer / 600) * 100}%` }} />
+                            <div className={`h-full transition-all ${buff.type === ItemType.BUFF_ATTACK_SPEED ? 'bg-blue-500' : 'bg-slate-500'}`} style={{ width: `${(buff.timer / 600) * 100}%` }} />
                         </div>
                     </div>
                 ))}

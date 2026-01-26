@@ -335,8 +335,7 @@ export const COLORS = {
   damagePlayer: '#ffffff',
   damageEnemy: '#ef4444',
   heal: '#22c55e',
-  buffDamage: '#ef4444',
-  buffSpeed: '#3b82f6',
+  // buffDamage and buffSpeed removed
   abilityScroll: '#f59e0b', 
   xp: '#3b82f6',
   interaction: '#fbbf24', 

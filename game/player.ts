@@ -1,5 +1,5 @@
 
-import { GameState, ItemType, WeaponType, EntityType } from '../types';
+import { GameState, ItemType, WeaponType, EntityType, AbilityType } from '../types';
 import * as C from '../constants';
 import { handleAttack, handleAbility, nextFloor, dealDamage } from './eventHandlers';
 import { resolveMapCollision, rectIntersect, getHurtbox, checkCircleRect } from './physics';
@@ -26,11 +26,17 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
     
     player.aimAngle = Math.atan2(worldMy - pCenterY, worldMx - pCenterX);
     
-    if (!player.isSlashDashing) {
+    if (!player.isSlashDashing && !player.isDashing) {
         player.facingX = Math.abs(player.aimAngle) > Math.PI / 2 ? -1 : 1;
     }
 
+    // --- TIMERS ---
     if (player.interactionCooldown > 0) player.interactionCooldown--;
+    if (player.dashCooldown > 0) player.dashCooldown--;
+    if (player.invulnTimer > 0) player.invulnTimer--;
+    if (player.hitFlashTimer > 0) player.hitFlashTimer--;
+
+    // --- INTERACTION ---
     if (inputs.has('KeyE') && state.interactionItem && player.interactionCooldown <= 0) {
         if (state.interactionItem.itemType === ItemType.PORTAL) {
              nextFloor(state);
@@ -48,6 +54,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         }
     }
 
+    // --- ABILITIES ---
     if (player.abilityCooldown > 0) player.abilityCooldown--;
     if (inputs.has('KeyQ') && player.abilityCooldown <= 0) {
         handleAbility(state, 'PRIMARY');
@@ -64,7 +71,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         return b.timer > 0;
     });
 
-    // --- SPECIAL ABILITY STATES ---
+    // --- MOVEMENT STATE MACHINE ---
 
     if (player.isSpinning) {
         // EXECUTIONER SWIRL LOGIC
@@ -87,7 +94,6 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
         state.enemies.forEach(e => {
             const hurtbox = getHurtbox(e);
-            // Use Circle-Rect Check for improved Boss Hitbox
             if (checkCircleRect({x: axeHeadX, y: axeHeadY, r: hitboxRadius}, hurtbox) && (!e.swirlTimer || e.swirlTimer <= 0)) {
                 const dmgMult = weaponConfig.secondary?.damageMult || 0.5;
                 const damage = player.stats.damage * dmgMult;
@@ -108,7 +114,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
 
         if (hitCount > 0) state.camera.shake = 3;
 
-        // Movement Logic
+        // Movement Logic during spin
         let dx = 0; let dy = 0;
         if (inputs.has('KeyW')) dy -= 1;
         if (inputs.has('KeyS')) dy += 1;
@@ -131,6 +137,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         }
 
     } else if (player.isSlashDashing) {
+        // CURSED BLADE DASH LOGIC
         player.slashDashTimer--;
         if (state.time % 3 === 0) createParticles(state, player.x, player.y, 1, '#fbbf24');
 
@@ -151,10 +158,35 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
         resolveMapCollision(player, dungeon);
         if (player.slashDashTimer <= 0) {
             player.isSlashDashing = false;
+            player.isDashing = false; // Also clear generic dash flag
             player.vx *= 0.1;
             player.vy *= 0.1;
         }
-    } else if (!player.isDashing) {
+    } else if (player.isDashing) {
+        // STANDARD DASH LOGIC
+        player.vx *= 0.92; // Less friction than walking for slide effect
+        player.vy *= 0.92;
+
+        const speed = Math.sqrt(player.vx*player.vx + player.vy*player.vy);
+        if (speed < 4) {
+            player.isDashing = false;
+        }
+
+        // Trail Visuals
+        if (state.time % 3 === 0) {
+             createParticles(state, player.x + player.width/2, player.y + player.height, 1, '#94a3b8');
+        }
+        
+        // Thunderstep Module (Uncommon)
+        if (player.inventory['thunderstep_module']) {
+             if (state.time % 4 === 0) {
+                 createParticles(state, player.x + player.width/2, player.y + player.height/2, 2, '#facc15');
+             }
+        }
+
+        resolveMapCollision(player, dungeon);
+        
+    } else {
       // NORMAL MOVEMENT
       let dx = 0; let dy = 0;
       if (inputs.has('KeyW')) dy -= 1;
@@ -171,7 +203,7 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
       const isSprinting = inputs.has('ShiftLeft');
       const sprintMult = isSprinting ? C.SPRINT_SPEED_MULT : 1.0;
 
-      const speed = player.stats.speed * sprintMult * (player.activeBuffs.some(b => b.type === ItemType.BUFF_SPEED) ? 1.5 : 1.0);
+      const speed = player.stats.speed * sprintMult;
       player.vx += dx * speed * 0.2;
       player.vy += dy * speed * 0.2;
       player.vx *= C.FRICTION;
@@ -182,190 +214,105 @@ export const updatePlayer = (state: GameState, inputs: Set<string>, mouse: {x: n
           createParticles(state, player.x + player.width/2, player.y + player.height, 1, '#64748b'); // Dust
       }
 
-      // Handle Attack Logic
+      // --- DASH TRIGGER ---
+      if (inputs.has('Space') && player.dashCooldown <= 0) {
+          player.isDashing = true;
+          player.dashCooldown = C.DASH_COOLDOWN;
+          player.invulnTimer = 15; // 0.25s Invuln
+          
+          let dashDx = dx;
+          let dashDy = dy;
+          
+          // Dash towards mouse if not moving
+          if (dashDx === 0 && dashDy === 0) {
+              dashDx = Math.cos(player.aimAngle);
+              dashDy = Math.sin(player.aimAngle);
+          }
+          
+          player.vx = dashDx * C.PLAYER_DASH_FORCE;
+          player.vy = dashDy * C.PLAYER_DASH_FORCE;
+          
+          createParticles(state, player.x + player.width/2, player.y + player.height/2, 12, '#ffffff');
+          state.camera.shake = 3;
+
+          // Chrono Splitter (Legendary): Create Clone
+          if (player.inventory['chrono_splitter']) {
+              spawnEcho(state, player.x, player.y, 2); // Use Tier 2 Echo as clone
+          }
+          
+          // Thunderstep (Uncommon): AoE Blast
+          if (player.inventory['thunderstep_module']) {
+              const range = 100;
+              const dmg = player.stats.damage * 1.5;
+              state.enemies.forEach(e => {
+                  const dist = Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2);
+                  if (dist < range) {
+                      dealDamage(state, e, dmg, false);
+                      createParticles(state, e.x, e.y, 5, '#facc15');
+                  }
+              });
+          }
+
+          return; // Skip rest of movement logic
+      }
+
+      // Handle Attack Logic (Melee Hit Detection)
       if (player.attackCooldown > 0) {
         player.attackCooldown--;
         player.isAttacking = true;
 
-        const weapon = C.WEAPONS[player.currentWeapon];
-        const progress = 1 - (player.attackCooldown / player.maxAttackCooldown);
-        let swingOffset = Math.sin((progress - 0.5) * Math.PI) * (weapon.arc / 2);
-
-        if (Math.abs(player.aimAngle) > Math.PI / 2) {
-            swingOffset *= -1;
-        }
-
-        const currentAngle = player.aimAngle + swingOffset;
-        const orbitRadius = 12;
-        const handX = pCenterX + Math.cos(player.aimAngle) * orbitRadius;
-        const handY = pCenterY + 2 + Math.sin(player.aimAngle) * orbitRadius; 
-
-        // --- EXECUTIONER AXE ---
-        if (player.currentWeapon === WeaponType.EXECUTIONER_AXE) {
-             const weaponReach = 48; 
-             const axeX = handX + Math.cos(currentAngle) * weaponReach;
-             const axeY = handY + Math.sin(currentAngle) * weaponReach;
-
-             if (state.time % 2 === 0) {
-                 createParticles(state, axeX, axeY, 1, '#334155');
-             }
-
-             const axeHitboxRadius = 40; 
-             
-             state.enemies.forEach(e => {
-                 if (player.swingHitList.includes(e.id)) return; 
-
-                 const hurtbox = getHurtbox(e);
-                 // Use Circle-Rect Check
-                 if (checkCircleRect({x: axeX, y: axeY, r: axeHitboxRadius}, hurtbox)) {
-                     const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
-                     const dmgMult = dmgBuff ? 1.5 : 1.0;
-                     const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
-                     const baseDmg = player.stats.damage * weapon.damageMult;
-                     const finalDmg = baseDmg * dmgMult * comboMult;
+        if (player.currentWeapon !== WeaponType.SHADOW_BOW) {
+            const weapon = C.WEAPONS[player.currentWeapon];
+            
+            state.enemies.forEach(e => {
+                if (player.swingHitList.includes(e.id)) return;
+                
+                const hurtbox = getHurtbox(e);
+                const ecx = hurtbox.x + hurtbox.width/2;
+                const ecy = hurtbox.y + hurtbox.height/2;
+                
+                const dx = ecx - (player.x + player.width/2);
+                const dy = ecy - (player.y + player.height/2);
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const angle = Math.atan2(dy, dx);
+                
+                let angleDiff = angle - player.aimAngle;
+                while(angleDiff > Math.PI) angleDiff -= Math.PI*2;
+                while(angleDiff < -Math.PI) angleDiff += Math.PI*2;
+                
+                const hitDist = weapon.range + Math.max(e.width, e.height) * 0.5;
+                
+                if (dist < hitDist && Math.abs(angleDiff) < weapon.arc / 2) {
+                     const dmgMult = 1.0; 
+                     const damage = player.stats.damage * weapon.damageMult * dmgMult;
                      const isCrit = Math.random() < player.stats.critChance;
-
-                     dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
                      
-                     // Gemini Protocol (Melee)
-                     if (player.inventory['gemini_protocol'] && Math.random() < 0.3) {
-                         // Double hit visual
-                         createParticles(state, e.x, e.y, 5, '#818cf8');
-                         dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
-                     }
-
-                     const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
-                     e.vx += Math.cos(pushAngle) * 3; 
-                     e.vy += Math.sin(pushAngle) * 3;
-                     
-                     createParticles(state, e.x, e.y, 5, '#7f1d1d', pushAngle);
-                     state.camera.shake = 8;
-                     
+                     dealDamage(state, e, damage, isCrit);
                      player.swingHitList.push(e.id);
-                     player.combo++;
-                     player.comboTimer = C.COMBO_DECAY;
-                 }
-             });
+                     
+                     // Knockback
+                     e.vx += Math.cos(angle) * 5;
+                     e.vy += Math.sin(angle) * 5;
+                     
+                     createParticles(state, ecx, ecy, 3, '#ffffff');
+                     state.camera.shake = 2;
+                }
+            });
         }
-        // --- BLOOD BLADE & CURSED BLADE ---
-        else if (player.currentWeapon === WeaponType.BLOOD_BLADE || player.currentWeapon === WeaponType.CURSED_BLADE) {
-             const range = weapon.range;
-             const numPoints = 5;
-             const points: {x: number, y: number}[] = [];
-             
-             for(let i=1; i<=numPoints; i++) {
-                 const d = (range / numPoints) * i;
-                 points.push({
-                     x: handX + Math.cos(currentAngle) * d,
-                     y: handY + Math.sin(currentAngle) * d
-                 });
-             }
-
-             state.enemies.forEach(e => {
-                 if (player.swingHitList.includes(e.id)) return;
-
-                 const hurtbox = getHurtbox(e);
-                 let hit = false;
-                 for(const p of points) {
-                     // Check if weapon point is inside hurtbox (Approximate width with r=15)
-                     if (checkCircleRect({x: p.x, y: p.y, r: 15}, hurtbox)) {
-                         hit = true;
-                         break;
-                     }
-                 }
-
-                 if (hit) {
-                     const dmgBuff = player.activeBuffs.find(b => b.type === ItemType.BUFF_DAMAGE);
-                     const dmgMult = dmgBuff ? 1.5 : 1.0;
-                     const comboMult = 1 + (player.combo * C.COMBO_DAMAGE_MULT_PER_STACK);
-                     const baseDmg = player.stats.damage * weapon.damageMult;
-                     const finalDmg = baseDmg * dmgMult * comboMult;
-                     const isCrit = Math.random() < player.stats.critChance;
-
-                     dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
-
-                     // Gemini Protocol (Melee)
-                     if (player.inventory['gemini_protocol'] && Math.random() < 0.3) {
-                         createParticles(state, e.x, e.y, 5, '#818cf8');
-                         dealDamage(state, e, isCrit ? finalDmg * 2 : finalDmg, isCrit);
-                     }
-                     
-                     const pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
-                     e.vx += Math.cos(pushAngle) * 1.5;
-                     e.vy += Math.sin(pushAngle) * 1.5;
-                     
-                     createParticles(state, e.x, e.y, 3, weapon.color, pushAngle);
-                     state.camera.shake = 4;
-                     
-                     player.swingHitList.push(e.id);
-                     player.combo++;
-                     player.comboTimer = C.COMBO_DECAY;
-                 }
-             });
-        }
-
       } else {
-        player.isAttacking = false;
+          player.isAttacking = false;
       }
-      
-      if (inputs.has('MouseRight') && player.secondaryAbilityCooldown <= 0) {
-          handleAbility(state, 'SECONDARY');
-      } else if (inputs.has('MouseLeft') && player.attackCooldown <= 0) {
+
+      // Start Attack
+      if (inputs.has('MouseLeft') && player.attackCooldown <= 0) {
           handleAttack(state);
       }
-
-      if (player.dashCooldown > 0) player.dashCooldown--;
-      // DASH (Moved to SPACE)
-      if (inputs.has('Space') && player.dashCooldown <= 0) {
-          player.isDashing = true;
-          const cdr = Math.min(0.75, player.stats.cooldownReduction);
-          player.dashCooldown = Math.ceil(C.DASH_COOLDOWN * (1 - cdr));
-          
-          player.invulnTimer = 20;
-          
-          // 15. Chrono Splitter
-          if (player.inventory['chrono_splitter']) {
-              // Center the echo spawn. Echo is 24x24, so offset by 12.
-              spawnEcho(state, player.x + player.width/2 - 12, player.y + player.height/2 - 12, 2); 
-              createParticles(state, player.x, player.y, 10, '#ffffff'); 
-          }
-
-          // Thunderstep Module
-          if (player.inventory['thunderstep_module']) {
-              const stacks = player.inventory['thunderstep_module'];
-              for(let i=0; i<3 * stacks; i++) {
-                 const angle = Math.random() * Math.PI * 2;
-                 state.projectiles.push({
-                     id: `thunder-${Math.random()}`, type: EntityType.PROJECTILE, ownerId: player.id,
-                     x: player.x + player.width/2, y: player.y + player.height/2,
-                     width: 8, height: 8,
-                     vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10,
-                     damage: 10 * stacks, color: '#facc15', lifeTime: 10, isDead: false, renderStyle: 'SHADOW_ARROW' // Re-use arrow for sharp look or create Lightning style
-                 });
-              }
-              createParticles(state, player.x, player.y, 10, '#facc15');
-          }
-
-          const len = Math.sqrt(player.vx*player.vx + player.vy*player.vy);
-          if (len > 0.1) {
-              player.vx = (player.vx / len) * C.PLAYER_DASH_FORCE;
-              player.vy = (player.vy / len) * C.PLAYER_DASH_FORCE;
-          } else {
-              player.vx = Math.cos(player.aimAngle) * C.PLAYER_DASH_FORCE;
-              player.vy = Math.sin(player.aimAngle) * C.PLAYER_DASH_FORCE;
-          }
-          createParticles(state, player.x, player.y, 8, '#ffffff');
+      
+      // Start Secondary
+      if (inputs.has('MouseRight') && player.secondaryAbilityCooldown <= 0) {
+          handleAbility(state, 'SECONDARY');
       }
+
       resolveMapCollision(player, dungeon);
-    } else {
-        player.vx *= 0.9;
-        player.vy *= 0.9;
-        resolveMapCollision(player, dungeon);
-        if (Math.sqrt(player.vx*player.vx + player.vy*player.vy) < 4) {
-            player.isDashing = false;
-        }
     }
-    
-    if (player.invulnTimer > 0) player.invulnTimer--;
-    if (player.hitFlashTimer > 0) player.hitFlashTimer--;
 };

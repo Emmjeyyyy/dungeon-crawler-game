@@ -38,8 +38,6 @@ export enum BossState {
 
 export enum ItemType {
   BLOOD_VIAL = 'BLOOD_VIAL', 
-  BUFF_DAMAGE = 'BUFF_DAMAGE', 
-  BUFF_SPEED = 'BUFF_SPEED',   
   BUFF_ATTACK_SPEED = 'BUFF_ATTACK_SPEED', // New for Berserker Cortex
   WEAPON_DROP = 'WEAPON_DROP',
   PORTAL = 'PORTAL' 
@@ -269,8 +267,9 @@ export interface Dungeon {
   grid: TileType[][];
   rooms: Room[];
   floor: number;
-  floorName: string; // New: Unique name for the floor
+  floorName: string; 
   portalRoomId: string; 
+  weaponRoomId: string;
 }
 
 export interface GameState {
