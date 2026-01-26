@@ -39,89 +39,160 @@ export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
   const grid: TileType[][] = Array(height).fill(null).map(() => Array(width).fill(TileType.VOID));
   const rooms: Room[] = [];
 
-  const targetRoomCount = 8 + Math.floor(floor * 0.5);
-  const minRooms = 5;
-  let attempts = 0;
-  const maxAttempts = 500;
-  
-  while ((rooms.length < targetRoomCount || rooms.length < minRooms) && attempts < maxAttempts) {
-    attempts++;
-    const roll = Math.random();
-    let w, h;
+  const isBossFloor = (gameMode === GameMode.STORY && (floor === 5 || floor === 10)) ||
+                      (gameMode === GameMode.ENDLESS && floor > 0 && floor % 5 === 0);
 
-    // 1. Varied Room Sizes
-    if (roll < 0.2) { // Treasure / Small Room
-        w = Math.floor(Math.random() * 4) + 6;
-        h = Math.floor(Math.random() * 4) + 6;
-    } else if (roll < 0.7) { // Standard Room
-        w = Math.floor(Math.random() * 6) + 10;
-        h = Math.floor(Math.random() * 6) + 10;
-    } else { // Large Hall / Arena
-        w = Math.floor(Math.random() * 8) + 16;
-        h = Math.floor(Math.random() * 8) + 16;
-    }
+  if (isBossFloor) {
+      // ---------------- BOSS ARENA GENERATION ----------------
+      const arenaW = 38;
+      const arenaH = 38;
+      const cx = Math.floor(width / 2);
+      const cy = Math.floor(height / 2);
+      
+      const arenaX = cx - Math.floor(arenaW / 2);
+      const arenaY = cy - Math.floor(arenaH / 2);
 
-    const x = Math.floor(Math.random() * (width - w - 4)) + 2;
-    const y = Math.floor(Math.random() * (height - h - 4)) + 2;
+      // 1. Create Antechamber (Spawn Room)
+      const startW = 10;
+      const startH = 8;
+      const startX = cx - Math.floor(startW / 2);
+      const startY = arenaY + arenaH + 3; // Below arena
 
-    const newRoom: Room = { 
-        id: `room-${rooms.length}`,
-        x, y, width: w, height: h,
-        isCleared: rooms.length === 0,
-        isActive: rooms.length === 0,
-        doorTiles: []
-    };
-    
-    // 2. Padding to prevent awkward merges
-    let overlap = false;
-    const padding = 4;
-    for (const r of rooms) {
-      if (x < r.x + r.width + padding && x + w + padding > r.x && 
-          y < r.y + r.height + padding && y + h + padding > r.y) {
-        overlap = true;
-        break;
+      const startRoom: Room = {
+          id: 'antechamber',
+          x: startX, y: startY, width: startW, height: startH,
+          isCleared: true, isActive: true, doorTiles: []
+      };
+
+      // 2. Create Boss Arena
+      const bossRoom: Room = {
+          id: 'boss-arena',
+          x: arenaX, y: arenaY, width: arenaW, height: arenaH,
+          isCleared: false, isActive: false, doorTiles: []
+      };
+
+      // 3. Paint Rooms
+      // Start Room Floor
+      for(let y=startY; y<startY+startH; y++) 
+          for(let x=startX; x<startX+startW; x++) grid[y][x] = TileType.FLOOR;
+
+      // Arena Floor (Circular with patterns)
+      const radius = Math.floor(arenaW / 2) - 1;
+      const centerY = arenaY + Math.floor(arenaH / 2);
+      const centerX = arenaX + Math.floor(arenaW / 2);
+      
+      for(let y=arenaY; y<arenaY+arenaH; y++) {
+          for(let x=arenaX; x<arenaX+arenaW; x++) {
+              const dx = x - centerX;
+              const dy = y - centerY;
+              const distSq = dx*dx + dy*dy;
+              if (distSq <= radius*radius) {
+                   grid[y][x] = TileType.FLOOR;
+                   // Pillars pattern
+                   if ((Math.abs(dx) === 10 && Math.abs(dy) === 10) || (Math.abs(dx) === 6 && Math.abs(dy) === 6)) {
+                       grid[y][x] = TileType.WALL;
+                   }
+              }
+          }
       }
-    }
 
-    if (!overlap) {
-      for(let ry = y; ry < y + h; ry++) {
-        for(let rx = x; rx < x + w; rx++) {
-          grid[ry][rx] = TileType.FLOOR;
+      // 4. Corridor Connection
+      const corrTop = centerY + radius - 1;
+      for(let y = corrTop; y < startY; y++) {
+          for(let x = cx - 2; x <= cx + 1; x++) {
+              if (x >= 0 && x < width) grid[y][x] = TileType.FLOOR;
+          }
+      }
+
+      rooms.push(startRoom);
+      rooms.push(bossRoom);
+
+  } else {
+      // ---------------- STANDARD GENERATION ----------------
+      const targetRoomCount = 8 + Math.floor(floor * 0.5);
+      const minRooms = 5;
+      let attempts = 0;
+      const maxAttempts = 500;
+      
+      while ((rooms.length < targetRoomCount || rooms.length < minRooms) && attempts < maxAttempts) {
+        attempts++;
+        const roll = Math.random();
+        let w, h;
+
+        // 1. Varied Room Sizes
+        if (roll < 0.2) { // Treasure / Small Room
+            w = Math.floor(Math.random() * 4) + 6;
+            h = Math.floor(Math.random() * 4) + 6;
+        } else if (roll < 0.7) { // Standard Room
+            w = Math.floor(Math.random() * 6) + 10;
+            h = Math.floor(Math.random() * 6) + 10;
+        } else { // Large Hall / Arena
+            w = Math.floor(Math.random() * 8) + 16;
+            h = Math.floor(Math.random() * 8) + 16;
         }
-      }
-      rooms.push(newRoom);
 
-      if (rooms.length > 1) {
-        const prev = rooms[rooms.length - 2];
-        const cx1 = Math.floor(prev.x + prev.width/2);
-        const cy1 = Math.floor(prev.y + prev.height/2);
-        const cx2 = Math.floor(newRoom.x + newRoom.width/2);
-        const cy2 = Math.floor(newRoom.y + newRoom.height/2);
+        const x = Math.floor(Math.random() * (width - w - 4)) + 2;
+        const y = Math.floor(Math.random() * (height - h - 4)) + 2;
 
-        // 3. Wider Corridors (2 tiles wide)
-        const carve = (tx: number, ty: number) => {
-            for(let oy=0; oy<2; oy++) {
-                for(let ox=0; ox<2; ox++) {
-                    const gx = tx+ox;
-                    const gy = ty+oy;
-                    if (gx >= 0 && gx < width && gy >= 0 && gy < height) {
-                        if (grid[gy][gx] === TileType.VOID || grid[gy][gx] === TileType.WALL) {
-                            grid[gy][gx] = TileType.FLOOR;
+        const newRoom: Room = { 
+            id: `room-${rooms.length}`,
+            x, y, width: w, height: h,
+            isCleared: rooms.length === 0,
+            isActive: rooms.length === 0,
+            doorTiles: []
+        };
+        
+        // 2. Padding to prevent awkward merges
+        let overlap = false;
+        const padding = 4;
+        for (const r of rooms) {
+          if (x < r.x + r.width + padding && x + w + padding > r.x && 
+              y < r.y + r.height + padding && y + h + padding > r.y) {
+            overlap = true;
+            break;
+          }
+        }
+
+        if (!overlap) {
+          for(let ry = y; ry < y + h; ry++) {
+            for(let rx = x; rx < x + w; rx++) {
+              grid[ry][rx] = TileType.FLOOR;
+            }
+          }
+          rooms.push(newRoom);
+
+          if (rooms.length > 1) {
+            const prev = rooms[rooms.length - 2];
+            const cx1 = Math.floor(prev.x + prev.width/2);
+            const cy1 = Math.floor(prev.y + prev.height/2);
+            const cx2 = Math.floor(newRoom.x + newRoom.width/2);
+            const cy2 = Math.floor(newRoom.y + newRoom.height/2);
+
+            // 3. Wider Corridors (2 tiles wide)
+            const carve = (tx: number, ty: number) => {
+                for(let oy=0; oy<2; oy++) {
+                    for(let ox=0; ox<2; ox++) {
+                        const gx = tx+ox;
+                        const gy = ty+oy;
+                        if (gx >= 0 && gx < width && gy >= 0 && gy < height) {
+                            if (grid[gy][gx] === TileType.VOID || grid[gy][gx] === TileType.WALL) {
+                                grid[gy][gx] = TileType.FLOOR;
+                            }
                         }
                     }
                 }
-            }
-        };
+            };
 
-        if (Math.random() < 0.5) {
-          for (let xx = Math.min(cx1, cx2); xx <= Math.max(cx1, cx2); xx++) carve(xx, cy1);
-          for (let yy = Math.min(cy1, cy2); yy <= Math.max(cy1, cy2); yy++) carve(cx2, yy);
-        } else {
-          for (let yy = Math.min(cy1, cy2); yy <= Math.max(cy1, cy2); yy++) carve(cx1, yy);
-          for (let xx = Math.min(cx1, cx2); xx <= Math.max(cx1, cx2); xx++) carve(xx, cy2);
+            if (Math.random() < 0.5) {
+              for (let xx = Math.min(cx1, cx2); xx <= Math.max(cx1, cx2); xx++) carve(xx, cy1);
+              for (let yy = Math.min(cy1, cy2); yy <= Math.max(cy1, cy2); yy++) carve(cx2, yy);
+            } else {
+              for (let yy = Math.min(cy1, cy2); yy <= Math.max(cy1, cy2); yy++) carve(cx1, yy);
+              for (let xx = Math.min(cx1, cx2); xx <= Math.max(cx1, cx2); xx++) carve(xx, cy2);
+            }
+          }
         }
       }
-    }
   }
 
   // Door Generation
@@ -159,14 +230,14 @@ export const createDungeon = (floor: number, gameMode: GameMode): Dungeon => {
   const portalRoomId = rooms.length > 0 ? rooms[rooms.length - 1].id : '';
 
   // Select Guaranteed Weapon Room
-  // Choose a room that is NOT the start room (index 0) and NOT the portal room (last index)
   let weaponRoomId = '';
-  const candidateRooms = rooms.filter((r, i) => i !== 0 && i !== rooms.length - 1);
-  if (candidateRooms.length > 0) {
-      weaponRoomId = candidateRooms[Math.floor(Math.random() * candidateRooms.length)].id;
-  } else if (rooms.length > 1) {
-      // Fallback if map is tiny (unlikely with minRooms=5 logic)
-      weaponRoomId = rooms[0].id;
+  if (!isBossFloor) {
+      const candidateRooms = rooms.filter((r, i) => i !== 0 && i !== rooms.length - 1);
+      if (candidateRooms.length > 0) {
+          weaponRoomId = candidateRooms[Math.floor(Math.random() * candidateRooms.length)].id;
+      } else if (rooms.length > 1) {
+          weaponRoomId = rooms[0].id;
+      }
   }
 
   let floorName = `Floor ${floor}`;
